@@ -1,100 +1,93 @@
-# AWS Step Functions Habit Reminder Lab
+# Laboratório AWS Step Functions — Lembretes de Hábito
 
-This folder is the deliverable for DIO's "Explorando Workflows Automatizados com AWS Step
-Functions" challenge. It documents a small AWS Step Functions workflow that coordinates two Lambda
-functions around one DynamoDB table, using a fictional habit reminder pipeline as the example.
+Esta pasta é o entregável do desafio DIO "Explorando Workflows Automatizados com AWS Step
+Functions". Ela documenta um workflow real do Step Functions que orquestra duas funções Lambda em
+torno de uma tabela DynamoDB, usando como exemplo um pipeline fictício de lembrete de hábitos.
 
-The theme comes from [imm-api](https://github.com/pedrolucazx/imm-api), a habits and journal SaaS
-project. IMM makes the lab more concrete: real products need background workflows that find due
-habits or journal reminders and trigger notifications. This challenge copies only that concept. It
-does not call, read, deploy into, or depend on any real IMM AWS resource.
+O tema vem do [imm-api](https://github.com/pedrolucazx/imm-api), um SaaS de hábitos e diário. O
+IMM torna o laboratório mais concreto: produtos reais precisam de workflows em segundo plano que
+encontrem hábitos ou lembretes de diário pendentes e disparem notificações. Este desafio copia só
+esse conceito — não chama, lê, faz deploy em, ou depende de nenhum recurso AWS real do IMM.
 
-## What Was Built
+## O Que Foi Construído
 
-The lab workflow uses these isolated `aws-challenges-*` resources:
+O workflow do laboratório usa estes recursos isolados, com prefixo `aws-challenges-*`:
 
-| Resource | Lab name | Purpose |
+| Recurso | Nome no laboratório | Propósito |
 |---|---|---|
-| DynamoDB table | `aws-challenges-habit-reminders` | Stores one fake due reminder item |
-| Lambda | `aws-challenges-check-due-habits` | Queries reminders where `dueToday = true` |
-| Lambda | `aws-challenges-notify-mock` | Logs the notification that would be sent |
-| Step Functions state machine | `aws-challenges-habit-reminder` | Orchestrates the two Lambdas |
+| Tabela DynamoDB | `aws-challenges-habit-reminders` | Guarda um item fake de lembrete pendente |
+| Lambda | `aws-challenges-check-due-habits` | Busca lembretes onde `dueToday = true` |
+| Lambda | `aws-challenges-notify-mock` | Loga a notificação que seria enviada |
+| State machine (Step Functions) | `aws-challenges-habit-reminder` | Orquestra os dois Lambdas |
 
-All sample data is fake, including `demo-reminder-1` and `demo-user-1`. No table, Lambda, IAM
-role, SES identity, user, habit, journal entry, ARN, or account state from IMM is touched.
+Todos os dados de exemplo são fictícios, incluindo `demo-reminder-1` e `demo-user-1`. Nenhuma
+tabela, Lambda, role IAM, identidade SES, usuário, hábito, entrada de diário, ARN ou estado de
+conta do IMM é tocado.
 
-## Repository Files
+## Arquivos do Repositório
 
-| File | Purpose |
+| Arquivo | Propósito |
 |---|---|
-| [`state-machine.asl.json`](./state-machine.asl.json) | Amazon States Language definition |
-| [`lambdas/check-due-habits/index.mjs`](./lambdas/check-due-habits/index.mjs) | First Lambda state |
-| [`lambdas/notify-mock/index.mjs`](./lambdas/notify-mock/index.mjs) | Second Lambda state |
-| [`images/architecture.drawio`](./images/architecture.drawio) | Editable architecture diagram |
-| [`images/architecture.png`](./images/architecture.png) | Exported diagram for review |
+| [`state-machine.asl.json`](./state-machine.asl.json) | Definição em Amazon States Language |
+| [`lambdas/check-due-habits/index.mjs`](./lambdas/check-due-habits/index.mjs) | Primeiro estado (Lambda) |
+| [`lambdas/notify-mock/index.mjs`](./lambdas/notify-mock/index.mjs) | Segundo estado (Lambda) |
+| [`images/architecture.drawio`](./images/architecture.drawio) | Diagrama de arquitetura editável |
+| [`images/architecture.png`](./images/architecture.png) | Diagrama exportado para revisão |
 
-## Design Walkthrough
+## Design
 
-![Architecture diagram](./images/architecture.png)
+![Diagrama de arquitetura](./images/architecture.png)
 
-The state machine starts with `CheckDueHabits`. That Lambda reads the lab-only DynamoDB table and
-returns a `dueReminders` array containing reminders due today.
+A state machine começa em `CheckDueHabits`. Esse Lambda lê a tabela DynamoDB (isolada do
+laboratório) e retorna um array `dueReminders` com os lembretes pendentes no dia.
 
-The workflow then passes that array to `NotifyMock`. This Lambda deliberately does not send email,
-push notifications, or any real IMM notification. It logs messages such as "would notify
-demo-user-1 about Drink water" and returns a count of mocked notifications.
+O workflow então passa esse array para `NotifyMock`. Esse Lambda deliberadamente não envia
+e-mail, push, nem qualquer notificação real do IMM — ele loga mensagens como "would notify
+demo-user-1 about Drink water" e retorna a contagem de notificações simuladas.
 
-If `CheckDueHabits` cannot query DynamoDB, it throws. The state machine catches that failure and
-routes to `HandleFailure`, making the failure path visible in Step Functions instead of hiding the
-problem inside a Lambda log.
+Se `CheckDueHabits` não conseguir consultar o DynamoDB, ele lança uma exceção. A state machine
+captura essa falha e roteia para `HandleFailure`, deixando o caminho de falha visível no Step
+Functions em vez de escondido num log de Lambda.
 
-Successful happy path:
+Caminho de sucesso:
 
 ```text
 DynamoDB -> CheckDueHabits -> Step Functions -> NotifyMock -> Success
 ```
 
-Failure path:
+Caminho de falha:
 
 ```text
 CheckDueHabits -> HandleFailure
 ```
 
-## Execution Evidence
+## Evidência de Execução
 
-The deployment and execution commands are documented in
-[`../specs/001-step-functions-habit-lab/quickstart.md`](../specs/001-step-functions-habit-lab/quickstart.md).
-Per this repository's constitution, every `aws` command is run manually by Pedro in his own
-terminal, never by an AI agent.
+Todo comando `aws` de deploy/execução/teardown é rodado manualmente pelo dono do repositório, no
+próprio terminal — nenhum agente de IA roda comandos AWS neste projeto, em nenhuma etapa.
 
-After the real run is captured, this section should record:
-
-| Field | Value |
+| Campo | Valor |
 |---|---|
-| State machine ARN | `arn:aws:states:us-east-1:431715654897:stateMachine:aws-challenges-habit-reminder` |
-| Execution ARN | `arn:aws:states:us-east-1:431715654897:execution:aws-challenges-habit-reminder:11f5ae3a-a657-4a6f-aa8f-b1efaf087ef9` |
-| Execution date | 2026-08-01 |
-| Screenshot | `images/execution-success.png` — pending T013 |
-| Observed cost | Negligible — one Standard workflow execution, two Lambda invocations, on-demand DynamoDB, no idle capacity |
+| ARN da state machine | `arn:aws:states:us-east-1:431715654897:stateMachine:aws-challenges-habit-reminder` |
+| ARN da execução | `arn:aws:states:us-east-1:431715654897:execution:aws-challenges-habit-reminder:11f5ae3a-a657-4a6f-aa8f-b1efaf087ef9` |
+| Data da execução | 2026-08-01 |
+| Screenshot (sucesso) | [`images/execution-success.png`](./images/execution-success.png) |
+| Screenshot (falha, edge case) | [`images/execution-failure.png`](./images/execution-failure.png) |
+| Custo observado | Desprezível — uma execução Standard, duas invocações Lambda, DynamoDB on-demand, sem capacidade ociosa |
 
-An earlier execution attempt (before the IAM fix below) failed with `AccessDeniedException` on
-`dynamodb:Scan` and correctly routed through the `Catch` block to `HandleFailure` — real evidence
-of the edge case in `spec.md`, not just a narrated one.
+Uma tentativa de execução anterior (antes do fix de IAM abaixo) falhou com `AccessDeniedException`
+e roteou corretamente pelo bloco `Catch` até `HandleFailure` — evidência real do edge case, não só
+narrada.
 
-**Bug caught during execution**: `quickstart.md`'s original IAM policy for
-`aws-challenges-lambda-role` granted `dynamodb:Query`, but `check-due-habits` filters on
-`dueToday`, a non-key attribute (only `reminderId` is a key, no GSI) — that requires `Scan`, not
-`Query`. Fixed in `quickstart.md`; the deployed role needed a follow-up `put-role-policy` to match.
+**Bug capturado durante a execução real**: a policy IAM original de
+`aws-challenges-lambda-role` concedia `dynamodb:Query`, mas `check-due-habits` filtra por
+`dueToday`, um atributo que não é chave (só `reminderId` é, sem GSI) — isso exige `Scan`, não
+`Query`. Corrigido; a role já criada precisou de um `put-role-policy` de acompanhamento para
+alinhar.
 
 ## Teardown
 
-Teardown is completed after the evidence screenshot is captured. The follow-up task records the
-exact date, deleted resources, and verification result here.
-
-| Field | Value |
-|---|---|
-| Teardown date | Pending T017 |
-| Deleted resources | Pending T017 |
-| Verification result | Pending T017 |
-
-The required end state is zero remaining `aws-challenges-*` resources for this lab.
+Pendente — a ser feito no mesmo dia da evidência acima, apagando a state machine, os dois Lambdas,
+a tabela DynamoDB e as duas roles IAM (`aws-challenges-lambda-role`,
+`aws-challenges-states-role`). O estado final exigido é zero recursos `aws-challenges-*`
+remanescentes deste laboratório.
