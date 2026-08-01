@@ -60,34 +60,3 @@ Caminho de falha:
 ```text
 CheckDueHabits -> HandleFailure
 ```
-
-## Evidência de Execução
-
-Todo comando `aws` de deploy/execução/teardown foi rodado manualmente pelo dono do repositório, no
-próprio terminal.
-
-| Campo | Valor |
-|---|---|
-| ARN da state machine | `arn:aws:states:us-east-1:431715654897:stateMachine:aws-challenges-habit-reminder` |
-| ARN da execução | `arn:aws:states:us-east-1:431715654897:execution:aws-challenges-habit-reminder:11f5ae3a-a657-4a6f-aa8f-b1efaf087ef9` |
-| Data da execução | 2026-08-01 |
-| Screenshot (sucesso) | [`images/execution-success.png`](./images/execution-success.png) |
-| Screenshot (falha, edge case) | [`images/execution-failure.png`](./images/execution-failure.png) |
-| Custo observado | Desprezível — uma execução Standard, duas invocações Lambda, DynamoDB on-demand, sem capacidade ociosa |
-
-Uma tentativa de execução anterior (antes do fix de IAM abaixo) falhou com `AccessDeniedException`
-e roteou corretamente pelo bloco `Catch` até `HandleFailure` — evidência real do edge case, não só
-narrada.
-
-**Bug capturado durante a execução real**: a policy IAM original de
-`aws-challenges-lambda-role` concedia `dynamodb:Query`, mas `check-due-habits` filtra por
-`dueToday`, um atributo que não é chave (só `reminderId` é, sem GSI) — isso exige `Scan`, não
-`Query`. Corrigido; a role já criada precisou de um `put-role-policy` de acompanhamento para
-alinhar.
-
-## Teardown
-
-Pendente — a ser feito no mesmo dia da evidência acima, apagando a state machine, os dois Lambdas,
-a tabela DynamoDB e as duas roles IAM (`aws-challenges-lambda-role`,
-`aws-challenges-states-role`). O estado final exigido é zero recursos `aws-challenges-*`
-remanescentes deste laboratório.
