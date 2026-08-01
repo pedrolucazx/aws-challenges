@@ -71,11 +71,20 @@ After the real run is captured, this section should record:
 
 | Field | Value |
 |---|---|
-| State machine ARN | Pending T014 |
-| Execution ARN | Pending T014 |
-| Execution date | Pending T014 |
-| Screenshot | `images/execution-success.png` after T013 |
-| Observed cost | Pending T014 |
+| State machine ARN | `arn:aws:states:us-east-1:431715654897:stateMachine:aws-challenges-habit-reminder` |
+| Execution ARN | `arn:aws:states:us-east-1:431715654897:execution:aws-challenges-habit-reminder:11f5ae3a-a657-4a6f-aa8f-b1efaf087ef9` |
+| Execution date | 2026-08-01 |
+| Screenshot | `images/execution-success.png` — pending T013 |
+| Observed cost | Negligible — one Standard workflow execution, two Lambda invocations, on-demand DynamoDB, no idle capacity |
+
+An earlier execution attempt (before the IAM fix below) failed with `AccessDeniedException` on
+`dynamodb:Scan` and correctly routed through the `Catch` block to `HandleFailure` — real evidence
+of the edge case in `spec.md`, not just a narrated one.
+
+**Bug caught during execution**: `quickstart.md`'s original IAM policy for
+`aws-challenges-lambda-role` granted `dynamodb:Query`, but `check-due-habits` filters on
+`dueToday`, a non-key attribute (only `reminderId` is a key, no GSI) — that requires `Scan`, not
+`Query`. Fixed in `quickstart.md`; the deployed role needed a follow-up `put-role-policy` to match.
 
 ## Teardown
 
