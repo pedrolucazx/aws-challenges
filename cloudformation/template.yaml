@@ -1,0 +1,87 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Avatar upload stack for the AWS Challenges CloudFormation lab.
+
+Resources:
+  AvatarBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  AvatarUploadRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: AvatarBucketWrite
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: s3:PutObject
+                Resource: !Sub '${AvatarBucket.Arn}/*'
+
+  AvatarUploadFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: nodejs22.x
+      Handler: index.handler
+      Role: !GetAtt AvatarUploadRole.Arn
+      Environment:
+        Variables:
+          AVATAR_BUCKET_NAME: !Ref AvatarBucket
+      Code:
+        ZipFile: |
+          const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
+
+          const s3 = new S3Client({});
+
+          exports.handler = async (event) => {
+            const payload = typeof event.body === "string" ? JSON.parse(event.body) : (event.body || event);
+            const content = payload.content || payload.base64;
+
+            if (!content) {
+              return {
+                statusCode: 400,
+                body: JSON.stringify({ message: "content is required" }),
+              };
+            }
+
+            const key = `avatars/${payload.userId || "anonymous"}/${payload.fileName || "avatar"}`;
+
+            await s3.send(new PutObjectCommand({
+              Bucket: process.env.AVATAR_BUCKET_NAME,
+              Key: key,
+              Body: Buffer.from(content, "base64"),
+              ContentType: payload.contentType || "application/octet-stream",
+            }));
+
+            return {
+              statusCode: 201,
+              body: JSON.stringify({ key }),
+            };
+          };
+
+Outputs:
+  BucketName:
+    Description: Name of the S3 bucket that stores uploaded avatars.
+    Value: !Ref AvatarBucket
+
+  FunctionArn:
+    Description: ARN of the avatar upload Lambda function.
+    Value: !GetAtt AvatarUploadFunction.Arn
