@@ -20,6 +20,5 @@ com nomes próprios, criados e destruídos só para o laboratório.
 Cada pasta é autocontida: README explicando o desafio, código/template, diagrama de arquitetura e
 prints de evidência de execução real.
 
-**A regra que mais importa**: todo comando `aws` (deploy, verificação ou teardown) é documentado
-para ser rodado manualmente, pelo dono do repositório, no próprio terminal — nenhum agente de IA
-roda comandos AWS, mutáveis ou somente leitura, em nenhuma etapa.
+Todo comando `aws` (deploy, verificação ou teardown) é rodado manualmente, pelo dono do
+repositório, no próprio terminal.

@@ -63,8 +63,8 @@ CheckDueHabits -> HandleFailure
 
 ## Evidência de Execução
 
-Todo comando `aws` de deploy/execução/teardown é rodado manualmente pelo dono do repositório, no
-próprio terminal — nenhum agente de IA roda comandos AWS neste projeto, em nenhuma etapa.
+Todo comando `aws` de deploy/execução/teardown foi rodado manualmente pelo dono do repositório, no
+próprio terminal.
 
 | Campo | Valor |
 |---|---|
