@@ -5,6 +5,7 @@ Resources:
   AvatarBucket:
     Type: AWS::S3::Bucket
     Properties:
+      BucketName: !Sub 'aws-challenges-avatars-${AWS::AccountId}'
       BucketEncryption:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
@@ -25,63 +26,61 @@ Resources:
             Principal:
               Service: lambda.amazonaws.com
             Action: sts:AssumeRole
-      ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
       Policies:
-        - PolicyName: AvatarBucketWrite
+        - PolicyName: AvatarUploadPermissions
           PolicyDocument:
             Version: '2012-10-17'
             Statement:
               - Effect: Allow
                 Action: s3:PutObject
                 Resource: !Sub '${AvatarBucket.Arn}/*'
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/aws-challenges-avatar-upload*'
 
   AvatarUploadFunction:
     Type: AWS::Lambda::Function
     Properties:
-      Runtime: nodejs22.x
+      FunctionName: aws-challenges-avatar-upload
+      Runtime: nodejs20.x
       Handler: index.handler
       Role: !GetAtt AvatarUploadRole.Arn
       Environment:
         Variables:
-          AVATAR_BUCKET_NAME: !Ref AvatarBucket
+          BUCKET_NAME: !Ref AvatarBucket
       Code:
         ZipFile: |
           const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
+          const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 
           const s3 = new S3Client({});
 
           exports.handler = async (event) => {
-            const payload = typeof event.body === "string" ? JSON.parse(event.body) : (event.body || event);
-            const content = payload.content || payload.base64;
+            const { fileName, contentType } = event;
 
-            if (!content) {
-              return {
-                statusCode: 400,
-                body: JSON.stringify({ message: "content is required" }),
-              };
+            if (!fileName) {
+              throw new Error("fileName is required");
             }
 
-            const key = `avatars/${payload.userId || "anonymous"}/${payload.fileName || "avatar"}`;
+            const command = new PutObjectCommand({
+              Bucket: process.env.BUCKET_NAME,
+              Key: fileName,
+              ContentType: contentType || "application/octet-stream",
+            });
 
-            await s3.send(new PutObjectCommand({
-              Bucket: process.env.AVATAR_BUCKET_NAME,
-              Key: key,
-              Body: Buffer.from(content, "base64"),
-              ContentType: payload.contentType || "application/octet-stream",
-            }));
+            const uploadUrl = await getSignedUrl(s3, command, { expiresIn: 900 });
 
-            return {
-              statusCode: 201,
-              body: JSON.stringify({ key }),
-            };
+            return { uploadUrl };
           };
 
 Outputs:
   BucketName:
-    Description: Name of the S3 bucket that stores uploaded avatars.
+    Description: Name of the created avatar bucket
     Value: !Ref AvatarBucket
 
   FunctionArn:
-    Description: ARN of the avatar upload Lambda function.
+    Description: ARN of the presigned-URL Lambda
     Value: !GetAtt AvatarUploadFunction.Arn
