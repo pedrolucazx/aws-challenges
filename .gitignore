@@ -10,3 +10,11 @@ Thumbs.db
 *.swp
 .vscode/
 .idea/
+
+# Local-only tooling: spec-kit engine + per-agent skill/command definitions.
+# Kept on disk for local use, never part of the public repo/history.
+/.agents/
+/.claude/
+/.opencode/
+/.specify/
+/specs/
