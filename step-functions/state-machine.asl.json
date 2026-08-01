@@ -1,0 +1,48 @@
+{
+  "Comment": "Habit reminder workflow for the AWS Challenges Step Functions lab.",
+  "StartAt": "CheckDueHabits",
+  "States": {
+    "CheckDueHabits": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "aws-challenges-check-due-habits",
+        "Payload.$": "$"
+      },
+      "ResultSelector": {
+        "dueReminders.$": "$.Payload.dueReminders"
+      },
+      "ResultPath": "$",
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.error",
+          "Next": "HandleFailure"
+        }
+      ],
+      "Next": "NotifyMock"
+    },
+    "NotifyMock": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "aws-challenges-notify-mock",
+        "Payload.$": "$"
+      },
+      "ResultSelector": {
+        "notified.$": "$.Payload.notified",
+        "log.$": "$.Payload.log"
+      },
+      "ResultPath": "$",
+      "Next": "Success"
+    },
+    "Success": {
+      "Type": "Succeed"
+    },
+    "HandleFailure": {
+      "Type": "Fail",
+      "Error": "CheckDueHabitsFailed",
+      "Cause": "The check-due-habits Lambda failed while querying DynamoDB."
+    }
+  }
+}
