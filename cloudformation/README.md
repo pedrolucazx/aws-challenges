@@ -58,3 +58,14 @@ Cliente -> AvatarUploadFunction -> URL pré-assinada -> AvatarBucket
 Este template também é uma semente candidata para uma migração futura para Terraform: os limites da
 stack são pequenos, os logical IDs deixam os recursos explícitos e o design já separa armazenamento,
 IAM e computação.
+
+## Deploy
+
+Stack `aws-challenges-avatar-stack` criada com sucesso (`CREATE_COMPLETE`, zero rollback).
+
+| Output | Valor |
+|---|---|
+| `BucketName` | `aws-challenges-avatars-431715654897` |
+| `FunctionArn` | `arn:aws:lambda:us-east-1:431715654897:function:aws-challenges-avatar-upload` |
+
+![Recursos criados com sucesso](./images/stack-create-complete.png)
