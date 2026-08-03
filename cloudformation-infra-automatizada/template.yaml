@@ -1,0 +1,69 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Parameterized VPC, subnet, and security group for the automated infrastructure lab.
+
+Parameters:
+  VpcCidr:
+    Type: String
+    Default: '10.0.0.0/16'
+    Description: CIDR block for the lab VPC.
+
+  SubnetCidr:
+    Type: String
+    Default: '10.0.1.0/24'
+    Description: CIDR block for the lab subnet.
+
+  SgIngressCidr:
+    Type: String
+    Default: '0.0.0.0/0'
+    Description: CIDR block allowed to reach the lab security group.
+
+Resources:
+  LabVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VpcCidr
+      Tags:
+        - Key: Name
+          Value: aws-challenges-infra-automatizada-vpc
+
+  LabSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref LabVPC
+      CidrBlock: !Ref SubnetCidr
+      Tags:
+        - Key: Name
+          Value: aws-challenges-infra-automatizada-subnet
+
+  LabSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Lab security group for the automated infrastructure stack.
+      VpcId: !Ref LabVPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: !Ref SgIngressCidr
+      Tags:
+        - Key: Name
+          Value: aws-challenges-infra-automatizada-sg
+
+Outputs:
+  VpcId:
+    Description: ID of the lab VPC.
+    Value: !Ref LabVPC
+    Export:
+      Name: !Sub '${AWS::StackName}-VpcId'
+
+  SubnetId:
+    Description: ID of the lab subnet.
+    Value: !Ref LabSubnet
+    Export:
+      Name: !Sub '${AWS::StackName}-SubnetId'
+
+  SecurityGroupId:
+    Description: ID of the lab security group.
+    Value: !Ref LabSecurityGroup
+    Export:
+      Name: !Sub '${AWS::StackName}-SecurityGroupId'
