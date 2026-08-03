@@ -1,0 +1,102 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: S3 Object Lambda uppercase transform lab for the DIO Lambda and S3 challenge.
+
+Resources:
+  SourceBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'aws-challenges-ola-source-${AWS::AccountId}'
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  SupportingAccessPoint:
+    Type: AWS::S3::AccessPoint
+    Properties:
+      Bucket: !Ref SourceBucket
+      Name: !Sub 'aws-challenges-ola-ap-${AWS::AccountId}'
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  TransformFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: TransformFunctionPermissions
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: s3-object-lambda:WriteGetObjectResponse
+                Resource: !Sub 'arn:${AWS::Partition}:s3-object-lambda:${AWS::Region}:${AWS::AccountId}:accesspoint/aws-challenges-ola-olap-${AWS::AccountId}'
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource:
+                  - !Sub 'arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/aws-challenges-ola-transform-*'
+                  - !Sub 'arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/aws-challenges-ola-transform-*:*'
+
+  TransformFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub 'aws-challenges-ola-transform-${AWS::AccountId}'
+      Runtime: nodejs20.x
+      Handler: index.handler
+      Role: !GetAtt TransformFunctionRole.Arn
+      Timeout: 30
+      Code:
+        ZipFile: |
+          const { S3Client, WriteGetObjectResponseCommand } = require("@aws-sdk/client-s3");
+
+          const s3 = new S3Client({});
+
+          exports.handler = async (event) => {
+            const { inputS3Url, outputRoute, outputToken } = event.getObjectContext;
+            const response = await fetch(inputS3Url);
+            const contentType = response.headers.get("content-type") || "application/octet-stream";
+            const body = Buffer.from(await response.arrayBuffer());
+            const isText = contentType.startsWith("text/");
+
+            await s3.send(new WriteGetObjectResponseCommand({
+              RequestRoute: outputRoute,
+              RequestToken: outputToken,
+              Body: isText ? body.toString("utf8").toUpperCase() : body,
+              ContentType: contentType,
+            }));
+          };
+
+  ObjectLambdaAccessPoint:
+    Type: AWS::S3ObjectLambda::AccessPoint
+    Properties:
+      Name: !Sub 'aws-challenges-ola-olap-${AWS::AccountId}'
+      ObjectLambdaConfiguration:
+        SupportingAccessPoint: !GetAtt SupportingAccessPoint.Arn
+        TransformationConfigurations:
+          - Actions:
+              - GetObject
+            ContentTransformation:
+              AwsLambda:
+                FunctionArn: !GetAtt TransformFunction.Arn
+
+Outputs:
+  SourceBucketName:
+    Description: Name of the source bucket that stores the original objects.
+    Value: !Ref SourceBucket
+
+  ObjectLambdaAccessPointArn:
+    Description: ARN of the Object Lambda Access Point that returns transformed objects.
+    Value: !GetAtt ObjectLambdaAccessPoint.Arn
