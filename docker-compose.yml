@@ -1,0 +1,18 @@
+# Floci local — um container só, compartilhado pelos 2 desafios (mesma
+# lógica de uma conta AWS real: um "endpoint", N recursos com nomes
+# diferentes por desafio). Espelha o exemplo oficial (floci.io/docs).
+#
+# Nenhum agente roda `docker compose up` — é mutação (sobe container, ocupa
+# porta), fica só documentado aqui pro Pedro rodar manualmente (ver
+# .specify/memory/constitution.md Princípio II).
+services:
+  floci:
+    image: floci/floci:latest
+    container_name: floci
+    ports:
+      - "4566:4566"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./data:/app/data
+    environment:
+      FLOCI_STORAGE_MODE: hybrid
