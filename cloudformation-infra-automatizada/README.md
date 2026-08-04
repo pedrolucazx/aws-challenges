@@ -83,7 +83,19 @@ terminal.
 
 ## Deploy
 
-<!-- Preenchido após o redeploy da v2 (T008/T009/T010): StackStatus, os 6 Outputs -->
+Stack `aws-challenges-infra-automatizada` criada com sucesso (`CREATE_COMPLETE`, 12 recursos, zero
+rollback events) contra o LocalStack.
+
+| Output | Valor |
+|---|---|
+| `VpcId` | `vpc-b179158b69058f85a` |
+| `PublicSubnetId` | `subnet-105055851faf3fb61` |
+| `PrivateSubnetAId` | `subnet-ef770b2c37ecd7350` |
+| `PrivateSubnetBId` | `subnet-0293d009261e0eba4` |
+| `ComputeSecurityGroupId` | `sg-50ece0d0e42d79b07` |
+| `DatabaseSecurityGroupId` | `sg-e1f766944ee9d0a37` |
+
+Evidência completa: [`images/stack-create-complete-v2.txt`](./images/stack-create-complete-v2.txt).
 
 ## Change Set
 
