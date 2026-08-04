@@ -1,0 +1,106 @@
+=== describe-change-set ===
+{
+    "Changes": [
+        {
+            "Type": "Resource",
+            "ResourceChange": {
+                "Action": "Modify",
+                "LogicalResourceId": "LabSecurityGroup",
+                "PhysicalResourceId": "sg-e07eb8daf4404f300",
+                "ResourceType": "AWS::EC2::SecurityGroup",
+                "Replacement": "False"
+            }
+        }
+    ],
+    "ChangeSetName": "add-ssh-ingress",
+    "ChangeSetId": "arn:aws:cloudformation:us-east-1:000000000000:changeSet/add-ssh-ingress/646cbc40",
+    "StackId": "arn:aws:cloudformation:us-east-1:000000000000:stack/aws-challenges-infra-automatizada/03542419-3065-4fda-abd0-e58cba389808",
+    "StackName": "aws-challenges-infra-automatizada",
+    "Description": null,
+    "Parameters": [
+        {
+            "ParameterKey": "VpcCidr",
+            "ParameterValue": "10.0.0.0/16"
+        },
+        {
+            "ParameterKey": "SubnetCidr",
+            "ParameterValue": "10.0.1.0/24"
+        },
+        {
+            "ParameterKey": "SgIngressCidr",
+            "ParameterValue": "10.0.0.0/16"
+        }
+    ],
+    "CreationTime": "2026-08-04T19:46:00.935694+00:00",
+    "ExecutionStatus": "EXECUTE_COMPLETE",
+    "Status": "CREATE_COMPLETE",
+    "StatusReason": null,
+    "NotificationARNs": [],
+    "RollbackConfiguration": {},
+    "Capabilities": [],
+    "Tags": null,
+    "ParentChangeSetId": null,
+    "IncludeNestedStacks": false,
+    "RootChangeSetId": null,
+    "OnStackFailure": null,
+    "ImportExistingResources": null,
+    "StackDriftStatus": null,
+    "DeploymentMode": null
+}
+
+=== describe-stack-events (change set execution) ===
+{
+    "StackEvents": [
+        {
+            "StackId": "arn:aws:cloudformation:us-east-1:000000000000:stack/aws-challenges-infra-automatizada/03542419-3065-4fda-abd0-e58cba389808",
+            "EventId": "983f8b83-4a33-41a6-828a-fbc5f6d45163",
+            "StackName": "aws-challenges-infra-automatizada",
+            "LogicalResourceId": "aws-challenges-infra-automatizada",
+            "PhysicalResourceId": "arn:aws:cloudformation:us-east-1:000000000000:stack/aws-challenges-infra-automatizada/03542419-3065-4fda-abd0-e58cba389808",
+            "ResourceType": "AWS::CloudFormation::Stack",
+            "Timestamp": "2026-08-04T19:46:53.583333+00:00",
+            "ResourceStatus": "UPDATE_COMPLETE"
+        },
+        {
+            "StackId": "arn:aws:cloudformation:us-east-1:000000000000:stack/aws-challenges-infra-automatizada/03542419-3065-4fda-abd0-e58cba389808",
+            "EventId": "05d99055-bee8-4fd3-a2b3-73a3ec62233c",
+            "StackName": "aws-challenges-infra-automatizada",
+            "LogicalResourceId": "LabSecurityGroup",
+            "PhysicalResourceId": "sg-e07eb8daf4404f300",
+            "ResourceType": "AWS::EC2::SecurityGroup",
+            "Timestamp": "2026-08-04T19:46:53.582525+00:00",
+            "ResourceStatus": "UPDATE_COMPLETE"
+        },
+        {
+            "StackId": "arn:aws:cloudformation:us-east-1:000000000000:stack/aws-challenges-infra-automatizada/03542419-3065-4fda-abd0-e58cba389808",
+            "EventId": "d01ab621-4290-4677-bfc6-7807142fcc91",
+            "StackName": "aws-challenges-infra-automatizada",
+            "LogicalResourceId": "LabSecurityGroup",
+            "PhysicalResourceId": "sg-e07eb8daf4404f300",
+            "ResourceType": "AWS::EC2::SecurityGroup",
+            "Timestamp": "2026-08-04T19:46:53.581738+00:00",
+            "ResourceStatus": "UPDATE_IN_PROGRESS"
+        },
+        {
+            "StackId": "arn:aws:cloudformation:us-east-1:000000000000:stack/aws-challenges-infra-automatizada/03542419-3065-4fda-abd0-e58cba389808",
+            "EventId": "a88c1057-df86-432e-a130-40bc66f46207",
+            "StackName": "aws-challenges-infra-automatizada",
+            "LogicalResourceId": "aws-challenges-infra-automatizada",
+            "PhysicalResourceId": "arn:aws:cloudformation:us-east-1:000000000000:stack/aws-challenges-infra-automatizada/03542419-3065-4fda-abd0-e58cba389808",
+            "ResourceType": "AWS::CloudFormation::Stack",
+            "Timestamp": "2026-08-04T19:46:53.581214+00:00",
+            "ResourceStatus": "UPDATE_IN_PROGRESS"
+        },
+        {
+            "StackId": "arn:aws:cloudformation:us-east-1:000000000000:stack/aws-challenges-infra-automatizada/03542419-3065-4fda-abd0-e58cba389808",
+            "EventId": "5106b16e-56f0-462e-bb80-a76324f62954",
+            "StackName": "aws-challenges-infra-automatizada",
+            "LogicalResourceId": "aws-challenges-infra-automatizada",
+            "PhysicalResourceId": "arn:aws:cloudformation:us-east-1:000000000000:stack/aws-challenges-infra-automatizada/03542419-3065-4fda-abd0-e58cba389808",
+            "ResourceType": "AWS::CloudFormation::Stack",
+            "Timestamp": "2026-08-04T19:41:32.707941+00:00",
+            "ResourceStatus": "CREATE_COMPLETE"
+        }
+    ],
+    "NextToken": "eyJOZXh0VG9rZW4iOiBudWxsLCAiYm90b190cnVuY2F0ZV9hbW91bnQiOiA1fQ=="
+}

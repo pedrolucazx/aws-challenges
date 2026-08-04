@@ -86,7 +86,12 @@ Evidência completa (`describe-stacks`): [`images/stack-create-complete.txt`](./
 
 ## Change Set
 
-<!-- Preenchido após T011/T012: diff do change set, resultado do execute -->
+Change set `add-ssh-ingress` adicionou uma segunda regra de ingress (porta 22) ao
+`LabSecurityGroup` existente — `Action: Modify`, `Replacement: False` (o security group original
+continua o mesmo recurso físico, `sg-e07eb8daf4404f300`, só ganhou uma regra a mais). Executado
+com sucesso: `EXECUTE_COMPLETE`, stack em `UPDATE_COMPLETE`, sem rollback.
+
+Evidência completa: [`images/change-set-executed.txt`](./images/change-set-executed.txt).
 
 ## Teardown
 
