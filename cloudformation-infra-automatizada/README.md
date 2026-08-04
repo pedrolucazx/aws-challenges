@@ -17,7 +17,7 @@ templatizar a rede real do IMM, seria assim**.
 
 ## O Que Foi Construído
 
-13 recursos, 2 camadas de rede:
+11 recursos, 2 camadas de rede:
 
 | Recurso | Logical ID | Tipo | Propósito |
 |---|---|---|---|
@@ -32,7 +32,6 @@ templatizar a rede real do IMM, seria assim**.
 | Associação de rota | `PublicSubnetRouteTableAssociation` | `AWS::EC2::SubnetRouteTableAssociation` | Liga a subnet pública à route table |
 | SG de compute | `ComputeSecurityGroup` | `AWS::EC2::SecurityGroup` | 22 (admin), 80/443 (público) |
 | SG de banco | `DatabaseSecurityGroup` | `AWS::EC2::SecurityGroup` | 5432 só via `ComputeSecurityGroup` |
-| RDS Subnet Group | `DbSubnetGroup` | `AWS::RDS::DBSubnetGroup` | Declara as 2 subnets privadas — sem instância real |
 
 5 Parameters (`VpcCidr`, `PublicSubnetCidr`, `PrivateSubnetACidr`, `PrivateSubnetBCidr`,
 `AdminSshCidr` — todos com default, nenhum obrigatório) e 6 Outputs exportados, pra permitir que
@@ -40,7 +39,15 @@ outra stack referencie esses recursos via `Fn::ImportValue`.
 
 **Fora de escopo, deliberadamente**: nenhuma instância EC2 nem RDS real é criada — o ponto do
 laboratório é a topologia de rede (parametrização, camadas, Security Groups cruzados), não operar
-uma aplicação de verdade. O `DbSubnetGroup` só declara onde um banco *ficaria*.
+uma aplicação de verdade. As 2 subnets privadas em AZs diferentes já provam o requisito real de
+isolamento pra banco (RDS exige 2+ AZ pro subnet group) sem precisar do recurso RDS em si.
+
+**Nota real de troubleshooting**: a primeira versão deste template incluía um
+`AWS::RDS::DBSubnetGroup` declarando as 2 subnets privadas. Removido durante o desenvolvimento —
+esse recurso específico exige o feature `rds:pro` do LocalStack, ausente na licença Hobby (grátis)
+usada aqui, e travava `create-change-set` com timeout em vez de um erro claro. Achado direto no
+log do container (`docker logs localstack-main`), não documentado nas páginas de preço/docs
+públicas verificadas antes.
 
 ## Arquivos do Repositório
 
@@ -83,19 +90,8 @@ terminal.
 
 ## Deploy
 
-Stack `aws-challenges-infra-automatizada` criada com sucesso (`CREATE_COMPLETE`, 12 recursos, zero
-rollback events) contra o LocalStack.
-
-| Output | Valor |
-|---|---|
-| `VpcId` | `vpc-b179158b69058f85a` |
-| `PublicSubnetId` | `subnet-105055851faf3fb61` |
-| `PrivateSubnetAId` | `subnet-ef770b2c37ecd7350` |
-| `PrivateSubnetBId` | `subnet-0293d009261e0eba4` |
-| `ComputeSecurityGroupId` | `sg-50ece0d0e42d79b07` |
-| `DatabaseSecurityGroupId` | `sg-e1f766944ee9d0a37` |
-
-Evidência completa: [`images/stack-create-complete-v2.txt`](./images/stack-create-complete-v2.txt).
+<!-- Preenchido de novo após o redeploy sem DbSubnetGroup (ver runbook.md "T011 (redesenho 2)") —
+     o deploy anterior (12 recursos, incluía DbSubnetGroup) precisou ser refeito. -->
 
 ## Change Set
 
