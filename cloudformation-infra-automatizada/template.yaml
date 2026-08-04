@@ -22,6 +22,7 @@ Resources:
     Type: AWS::EC2::VPC
     Properties:
       CidrBlock: !Ref VpcCidr
+      EnableDnsSupport: true
       Tags:
         - Key: Name
           Value: aws-challenges-infra-automatizada-vpc
