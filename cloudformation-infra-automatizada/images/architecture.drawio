@@ -82,7 +82,7 @@
         <mxCell id="300" value="OUTROS COMPONENTES" style="text;html=1;fontStyle=1;fontSize=12;fontColor=#232F3E;" vertex="1" parent="1">
           <mxGeometry x="40" y="700" width="300" height="20" as="geometry" />
         </mxCell>
-        <mxCell id="301" value="RDS Subnet Group (declara PrivateSubnetA + PrivateSubnetB, sem instância)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;fontSize=11;" vertex="1" parent="1">
+        <mxCell id="301" value="Sem AWS::RDS::DBSubnetGroup — exige feature Pro do LocalStack, travava o change set" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;fontSize=11;" vertex="1" parent="1">
           <mxGeometry x="40" y="725" width="400" height="34" as="geometry" />
         </mxCell>
         <mxCell id="302" value="Sem NAT Gateway — subnets privadas sem saída (mesma decisão do IMM real)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;fontSize=11;" vertex="1" parent="1">

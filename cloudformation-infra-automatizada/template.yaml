@@ -123,6 +123,11 @@ Resources:
           FromPort: 443
           ToPort: 443
           CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          DestinationSecurityGroupId: !Ref DatabaseSecurityGroup
       Tags:
         - Key: Name
           Value: aws-challenges-imm-compute-sg
@@ -140,17 +145,6 @@ Resources:
       Tags:
         - Key: Name
           Value: aws-challenges-imm-database-sg
-
-  DbSubnetGroup:
-    Type: AWS::RDS::DBSubnetGroup
-    Properties:
-      DBSubnetGroupDescription: Private subnets for a future RDS instance — no instance provisioned in this lab.
-      SubnetIds:
-        - !Ref PrivateSubnetA
-        - !Ref PrivateSubnetB
-      Tags:
-        - Key: Name
-          Value: aws-challenges-imm-db-subnet-group
 
 Outputs:
   VpcId:
