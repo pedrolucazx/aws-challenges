@@ -6,35 +6,41 @@ CloudFormation". Diferente do primeiro desafio de CloudFormation deste repo (pas
 no conceito de **automação de infraestrutura**: um template parametrizado, com Outputs exportados
 para composição entre stacks, e um fluxo real de atualização via change set.
 
-O padrão vem do [imm-api](https://github.com/pedrolucazx/imm-api), um SaaS de hábitos e diário —
-a própria infra de rede do IMM (VPC, subnets, security groups) é gerenciada da mesma forma: um
-template que aceita parâmetros diferentes por ambiente, em vez de templates hardcoded duplicados.
-Este laboratório reproduz esse *padrão*, isolado, sem tocar nenhum recurso real do IMM.
+**Espelha a topologia real do IMM** ([imm-api](https://github.com/pedrolucazx/imm-api), um SaaS de
+hábitos e diário — ver `docs/aws-modulo-4-redes.md` do repo `inside-my-mind`): 1 VPC com 1 subnet
+pública (onde a EC2 real fica) e 2 subnets privadas em AZs diferentes (onde o RDS real fica —
+subnet group de banco exige 2+ AZ), com Security Groups cruzados (compute libera SSH só do IP do
+admin e HTTP/HTTPS públicos; banco libera Postgres só a partir do SG de compute, nunca direto da
+internet). CloudFormation nunca foi usado pra provisionar o IMM real (a infra real foi via AWS CLI
+puro; Terraform é o alvo real de IaC do projeto) — a conexão aqui é honesta: **se fôssemos
+templatizar a rede real do IMM, seria assim**.
 
 ## O Que Foi Construído
 
-3 recursos de rede, parametrizados:
+13 recursos, 2 camadas de rede:
 
 | Recurso | Logical ID | Tipo | Propósito |
 |---|---|---|---|
-| VPC | `LabVPC` | `AWS::EC2::VPC` | Rede isolada do laboratório |
-| Subnet | `LabSubnet` | `AWS::EC2::Subnet` | Subnet dentro da `LabVPC` |
-| Security Group | `LabSecurityGroup` | `AWS::EC2::SecurityGroup` | Regra de ingress inicial: porta 443, origem interna |
+| VPC | `ImmVPC` | `AWS::EC2::VPC` | Rede isolada do laboratório |
+| Subnet pública | `PublicSubnet` | `AWS::EC2::Subnet` | AZ `a`, onde compute (EC2) ficaria |
+| Subnet privada A | `PrivateSubnetA` | `AWS::EC2::Subnet` | AZ `a`, onde banco ficaria |
+| Subnet privada B | `PrivateSubnetB` | `AWS::EC2::Subnet` | AZ `b` — AZ diferente da A |
+| Internet Gateway | `InternetGateway` | `AWS::EC2::InternetGateway` | Saída pra internet |
+| Attachment do IGW | `VPCGatewayAttachment` | `AWS::EC2::VPCGatewayAttachment` | Liga o IGW à VPC |
+| Route table pública | `PublicRouteTable` | `AWS::EC2::RouteTable` | Associada só à subnet pública |
+| Rota pública | `PublicRoute` | `AWS::EC2::Route` | `0.0.0.0/0` → IGW |
+| Associação de rota | `PublicSubnetRouteTableAssociation` | `AWS::EC2::SubnetRouteTableAssociation` | Liga a subnet pública à route table |
+| SG de compute | `ComputeSecurityGroup` | `AWS::EC2::SecurityGroup` | 22 (admin), 80/443 (público) |
+| SG de banco | `DatabaseSecurityGroup` | `AWS::EC2::SecurityGroup` | 5432 só via `ComputeSecurityGroup` |
+| RDS Subnet Group | `DbSubnetGroup` | `AWS::RDS::DBSubnetGroup` | Declara as 2 subnets privadas — sem instância real |
 
-3 Parameters (`VpcCidr`, `SubnetCidr`, `SgIngressCidr` — todos com default, nenhum obrigatório) e
-3 Outputs exportados (`VpcId`, `SubnetId`, `SecurityGroupId`), pra permitir que outra stack
-referencie esses recursos via `Fn::ImportValue` sem acoplamento direto.
+5 Parameters (`VpcCidr`, `PublicSubnetCidr`, `PrivateSubnetACidr`, `PrivateSubnetBCidr`,
+`AdminSshCidr` — todos com default, nenhum obrigatório) e 6 Outputs exportados, pra permitir que
+outra stack referencie esses recursos via `Fn::ImportValue`.
 
-## Por que só 3 recursos (design ponytail)
-
-Foi considerado e descartado adicionar um quarto recurso de compute (ex: uma instância EC2
-placeholder) só pra bater mais de perto com a ideia de "VPC + subnet + SG + compute". Cortado: uma
-instância EC2 exige AMI/key pair e não adiciona nenhum conceito novo de automação — só mais um
-recurso do mesmo tipo de complexidade (uma referência cruzada simples). O que prova "automação de
-infraestrutura" como conceito não é o número de recursos, é: parametrização real (o mesmo
-template gera stacks diferentes por CIDR), outputs exportados pra composição, e o fluxo de change
-set (plan → review → apply). Os 3 recursos + esses três elementos já demonstram isso com o menor
-design possível.
+**Fora de escopo, deliberadamente**: nenhuma instância EC2 nem RDS real é criada — o ponto do
+laboratório é a topologia de rede (parametrização, camadas, Security Groups cruzados), não operar
+uma aplicação de verdade. O `DbSubnetGroup` só declara onde um banco *ficaria*.
 
 ## Arquivos do Repositório
 
@@ -49,14 +55,18 @@ design possível.
 
 ![Diagrama de arquitetura](./images/architecture.png)
 
-O fluxo: `LabVPC` é criada a partir de `VpcCidr`; `LabSubnet` referencia `LabVPC` via `!Ref` e
-recebe seu próprio CIDR (`SubnetCidr`); `LabSecurityGroup` também referencia `LabVPC`, com uma
-regra de ingress inicial restrita a `SgIngressCidr` (interno por padrão, nunca `0.0.0.0/0`). Os
-3 Outputs exportam os IDs pra composição futura entre stacks.
+O tráfego externo entra pelo Internet Gateway, roteado pela `PublicRouteTable` só até a
+`PublicSubnet` (onde compute ficaria, protegido pelo `ComputeSecurityGroup`). As subnets privadas
+não têm rota de saída — sem NAT Gateway, mesma decisão consciente já documentada na infra real do
+IMM (custo de ~$33/mês só ligado, sem necessidade real). O `DatabaseSecurityGroup` só aceita
+tráfego do `ComputeSecurityGroup` via `SourceSecurityGroupId` — nunca um CIDR direto, o banco
+nunca fica exposto.
 
 ```text
-VpcCidr -> LabVPC -> LabSubnet (SubnetCidr)
-                  -> LabSecurityGroup (SgIngressCidr, porta 443)
+Internet -> IGW -> PublicRouteTable -> PublicSubnet (ComputeSecurityGroup: 22/80/443)
+                                            |
+                                            v (5432, só via SG)
+                            PrivateSubnetA / PrivateSubnetB (DatabaseSecurityGroup)
 ```
 
 ## Sobre rodar em LocalStack (escolha deliberada, não um downgrade)
@@ -73,25 +83,11 @@ terminal.
 
 ## Deploy
 
-Stack `aws-challenges-infra-automatizada` criada com sucesso (`CREATE_COMPLETE`, zero rollback
-events) contra o LocalStack.
-
-| Output | Valor |
-|---|---|
-| `VpcId` | `vpc-452bab5c0f0d60d76` |
-| `SubnetId` | `subnet-248bdd2548d19b7d1` |
-| `SecurityGroupId` | `sg-e07eb8daf4404f300` |
-
-Evidência completa (`describe-stacks`): [`images/stack-create-complete.txt`](./images/stack-create-complete.txt).
+<!-- Preenchido após o redeploy da v2 (T008/T009/T010): StackStatus, os 6 Outputs -->
 
 ## Change Set
 
-Change set `add-ssh-ingress` adicionou uma segunda regra de ingress (porta 22) ao
-`LabSecurityGroup` existente — `Action: Modify`, `Replacement: False` (o security group original
-continua o mesmo recurso físico, `sg-e07eb8daf4404f300`, só ganhou uma regra a mais). Executado
-com sucesso: `EXECUTE_COMPLETE`, stack em `UPDATE_COMPLETE`, sem rollback.
-
-Evidência completa: [`images/change-set-executed.txt`](./images/change-set-executed.txt).
+<!-- Preenchido após T011/T012 da v2: diff do change set (SecurityGroupEgress no ComputeSecurityGroup) -->
 
 ## Teardown
 
