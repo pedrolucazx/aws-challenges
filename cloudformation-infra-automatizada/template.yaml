@@ -46,6 +46,10 @@ Resources:
           FromPort: 443
           ToPort: 443
           CidrIp: !Ref SgIngressCidr
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: !Ref SgIngressCidr
       Tags:
         - Key: Name
           Value: aws-challenges-infra-automatizada-sg
