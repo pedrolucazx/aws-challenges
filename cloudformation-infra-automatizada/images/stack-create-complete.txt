@@ -1,0 +1,50 @@
+{
+    "Stacks": [
+        {
+            "StackId": "arn:aws:cloudformation:us-east-1:000000000000:stack/aws-challenges-infra-automatizada/03542419-3065-4fda-abd0-e58cba389808",
+            "StackName": "aws-challenges-infra-automatizada",
+            "Parameters": [
+                {
+                    "ParameterKey": "VpcCidr",
+                    "ParameterValue": "10.0.0.0/16"
+                },
+                {
+                    "ParameterKey": "SubnetCidr",
+                    "ParameterValue": "10.0.1.0/24"
+                },
+                {
+                    "ParameterKey": "SgIngressCidr",
+                    "ParameterValue": "10.0.0.0/16"
+                }
+            ],
+            "CreationTime": "2026-08-04T19:41:31.595682+00:00",
+            "LastUpdatedTime": "2026-08-04T19:41:31.595682+00:00",
+            "RollbackConfiguration": {},
+            "StackStatus": "CREATE_COMPLETE",
+            "DisableRollback": false,
+            "NotificationARNs": [],
+            "Outputs": [
+                {
+                    "OutputKey": "SecurityGroupId",
+                    "OutputValue": "sg-e07eb8daf4404f300",
+                    "ExportName": "aws-challenges-infra-automatizada-SecurityGroupId"
+                },
+                {
+                    "OutputKey": "SubnetId",
+                    "OutputValue": "subnet-248bdd2548d19b7d1",
+                    "ExportName": "aws-challenges-infra-automatizada-SubnetId"
+                },
+                {
+                    "OutputKey": "VpcId",
+                    "OutputValue": "vpc-452bab5c0f0d60d76",
+                    "ExportName": "aws-challenges-infra-automatizada-VpcId"
+                }
+            ],
+            "Tags": [],
+            "EnableTerminationProtection": false,
+            "DriftInformation": {
+                "StackDriftStatus": "NOT_CHECKED"
+            }
+        }
+    ]
+}
