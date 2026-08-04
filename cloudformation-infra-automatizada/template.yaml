@@ -1,74 +1,190 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: Parameterized VPC, subnet, and security group for the automated infrastructure lab.
+Description: >-
+  VPC de 2 camadas espelhando a topologia real do IMM (inside-my-mind): 1 subnet publica (compute)
+  + 2 subnets privadas em AZs diferentes (onde um banco ficaria), Security Groups cruzados.
 
 Parameters:
   VpcCidr:
     Type: String
     Default: '10.0.0.0/16'
-    Description: CIDR block for the lab VPC.
+    Description: CIDR block for the VPC.
 
-  SubnetCidr:
+  PublicSubnetCidr:
     Type: String
     Default: '10.0.1.0/24'
-    Description: CIDR block for the lab subnet.
+    Description: CIDR block for the public subnet (where compute would live).
 
-  SgIngressCidr:
+  PrivateSubnetACidr:
+    Type: String
+    Default: '10.0.2.0/24'
+    Description: CIDR block for the first private subnet.
+
+  PrivateSubnetBCidr:
+    Type: String
+    Default: '10.0.3.0/24'
+    Description: CIDR block for the second private subnet (different AZ from the first).
+
+  AdminSshCidr:
     Type: String
     Default: '10.0.0.0/16'
-    Description: CIDR block allowed to reach the lab security group. Internal traffic only by default — never 0.0.0.0/0.
+    Description: CIDR block allowed to reach ComputeSecurityGroup on port 22. Internal traffic only by default — never 0.0.0.0/0.
 
 Resources:
-  LabVPC:
+  ImmVPC:
     Type: AWS::EC2::VPC
     Properties:
       CidrBlock: !Ref VpcCidr
       EnableDnsSupport: true
       Tags:
         - Key: Name
-          Value: aws-challenges-infra-automatizada-vpc
+          Value: aws-challenges-imm-vpc
 
-  LabSubnet:
+  PublicSubnet:
     Type: AWS::EC2::Subnet
     Properties:
-      VpcId: !Ref LabVPC
-      CidrBlock: !Ref SubnetCidr
+      VpcId: !Ref ImmVPC
+      CidrBlock: !Ref PublicSubnetCidr
+      AvailabilityZone: !Select [0, !GetAZs '']
+      MapPublicIpOnLaunch: true
       Tags:
         - Key: Name
-          Value: aws-challenges-infra-automatizada-subnet
+          Value: aws-challenges-imm-public-subnet
 
-  LabSecurityGroup:
+  PrivateSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref ImmVPC
+      CidrBlock: !Ref PrivateSubnetACidr
+      AvailabilityZone: !Select [0, !GetAZs '']
+      Tags:
+        - Key: Name
+          Value: aws-challenges-imm-private-subnet-a
+
+  PrivateSubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref ImmVPC
+      CidrBlock: !Ref PrivateSubnetBCidr
+      AvailabilityZone: !Select [1, !GetAZs '']
+      Tags:
+        - Key: Name
+          Value: aws-challenges-imm-private-subnet-b
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: aws-challenges-imm-igw
+
+  VPCGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref ImmVPC
+      InternetGatewayId: !Ref InternetGateway
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref ImmVPC
+      Tags:
+        - Key: Name
+          Value: aws-challenges-imm-public-rt
+
+  PublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: VPCGatewayAttachment
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  PublicSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet
+      RouteTableId: !Ref PublicRouteTable
+
+  ComputeSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: Lab security group for the automated infrastructure stack.
-      VpcId: !Ref LabVPC
+      GroupDescription: Compute tier — SSH restricted to admin, HTTP/HTTPS public.
+      VpcId: !Ref ImmVPC
       SecurityGroupIngress:
-        - IpProtocol: tcp
-          FromPort: 443
-          ToPort: 443
-          CidrIp: !Ref SgIngressCidr
         - IpProtocol: tcp
           FromPort: 22
           ToPort: 22
-          CidrIp: !Ref SgIngressCidr
+          CidrIp: !Ref AdminSshCidr
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
       Tags:
         - Key: Name
-          Value: aws-challenges-infra-automatizada-sg
+          Value: aws-challenges-imm-compute-sg
+
+  DatabaseSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Database tier — Postgres reachable only from ComputeSecurityGroup, never a direct CIDR.
+      VpcId: !Ref ImmVPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          SourceSecurityGroupId: !Ref ComputeSecurityGroup
+      Tags:
+        - Key: Name
+          Value: aws-challenges-imm-database-sg
+
+  DbSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: Private subnets for a future RDS instance — no instance provisioned in this lab.
+      SubnetIds:
+        - !Ref PrivateSubnetA
+        - !Ref PrivateSubnetB
+      Tags:
+        - Key: Name
+          Value: aws-challenges-imm-db-subnet-group
 
 Outputs:
   VpcId:
-    Description: ID of the lab VPC.
-    Value: !Ref LabVPC
+    Description: ID of the VPC.
+    Value: !Ref ImmVPC
     Export:
       Name: !Sub '${AWS::StackName}-VpcId'
 
-  SubnetId:
-    Description: ID of the lab subnet.
-    Value: !Ref LabSubnet
+  PublicSubnetId:
+    Description: ID of the public subnet.
+    Value: !Ref PublicSubnet
     Export:
-      Name: !Sub '${AWS::StackName}-SubnetId'
+      Name: !Sub '${AWS::StackName}-PublicSubnetId'
 
-  SecurityGroupId:
-    Description: ID of the lab security group.
-    Value: !Ref LabSecurityGroup
+  PrivateSubnetAId:
+    Description: ID of the first private subnet.
+    Value: !Ref PrivateSubnetA
     Export:
-      Name: !Sub '${AWS::StackName}-SecurityGroupId'
+      Name: !Sub '${AWS::StackName}-PrivateSubnetAId'
+
+  PrivateSubnetBId:
+    Description: ID of the second private subnet.
+    Value: !Ref PrivateSubnetB
+    Export:
+      Name: !Sub '${AWS::StackName}-PrivateSubnetBId'
+
+  ComputeSecurityGroupId:
+    Description: ID of the compute security group.
+    Value: !GetAtt ComputeSecurityGroup.GroupId
+    Export:
+      Name: !Sub '${AWS::StackName}-ComputeSecurityGroupId'
+
+  DatabaseSecurityGroupId:
+    Description: ID of the database security group.
+    Value: !GetAtt DatabaseSecurityGroup.GroupId
+    Export:
+      Name: !Sub '${AWS::StackName}-DatabaseSecurityGroupId'
