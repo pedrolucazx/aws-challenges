@@ -30,8 +30,8 @@ conta do IMM é tocado.
 |---|---|
 | [`template.yaml`](./template.yaml) | Template CloudFormation da stack (tabela, roles, Lambdas, state machine) |
 | [`state-machine.asl.json`](./state-machine.asl.json) | Definição em Amazon States Language (fonte da `DefinitionString` do template) |
-| [`lambdas/check-due-habits/index.mjs`](./lambdas/check-due-habits/index.mjs) | Primeiro estado (Lambda) |
-| [`lambdas/notify-mock/index.mjs`](./lambdas/notify-mock/index.mjs) | Segundo estado (Lambda) |
+| [`lambdas/check-due-habits/`](./lambdas/check-due-habits/) | Primeiro estado (Lambda), handler testável (ESM) + teste |
+| [`lambdas/notify-mock/`](./lambdas/notify-mock/) | Segundo estado (Lambda), handler testável (ESM) + teste |
 | [`images/architecture.drawio`](./images/architecture.drawio) | Diagrama de arquitetura editável |
 | [`images/architecture.png`](./images/architecture.png) | Diagrama exportado para revisão |
 

@@ -1,11 +1,10 @@
-import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { DynamoDBDocumentClient, ScanCommand } from "@aws-sdk/lib-dynamodb";
-
 const TABLE_NAME = "aws-challenges-habit-reminders";
 
-const client = DynamoDBDocumentClient.from(new DynamoDBClient({}));
+const scanDueReminders = async () => {
+  const { DynamoDBClient } = await import("@aws-sdk/client-dynamodb");
+  const { DynamoDBDocumentClient, ScanCommand } = await import("@aws-sdk/lib-dynamodb");
+  const client = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 
-export const handler = async () => {
   const { Items } = await client.send(
     new ScanCommand({
       TableName: TABLE_NAME,
@@ -13,12 +12,12 @@ export const handler = async () => {
       ExpressionAttributeValues: { ":dueToday": true },
     }),
   );
-
-  return {
-    dueReminders: (Items ?? []).map(({ reminderId, habitName, fakeUserId }) => ({
-      reminderId,
-      habitName,
-      fakeUserId,
-    })),
-  };
+  return Items ?? [];
 };
+
+export const toDueReminders = (items) =>
+  items.map(({ reminderId, habitName, fakeUserId }) => ({ reminderId, habitName, fakeUserId }));
+
+export const handler = async (_event, { scan = scanDueReminders } = {}) => ({
+  dueReminders: toDueReminders(await scan()),
+});
