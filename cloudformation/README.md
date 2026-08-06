@@ -59,7 +59,7 @@ Este template também é uma semente candidata para uma migração futura para T
 stack são pequenos, os logical IDs deixam os recursos explícitos e o design já separa armazenamento,
 IAM e computação.
 
-## Deploy
+## Deploy na AWS real
 
 Stack `aws-challenges-avatar-stack` criada com sucesso (`CREATE_COMPLETE`, zero rollback).
 
@@ -69,3 +69,35 @@ Stack `aws-challenges-avatar-stack` criada com sucesso (`CREATE_COMPLETE`, zero 
 | `FunctionArn` | `arn:aws:lambda:us-east-1:431715654897:function:aws-challenges-avatar-upload` |
 
 ![Recursos criados com sucesso](./images/stack-create-complete.png)
+
+## Rodando também no LocalStack
+
+Esse desafio rodou originalmente só na AWS real (evidência acima). Depois passou a rodar também
+no [LocalStack](https://www.localstack.cloud/) (plano Student), mesma motivação dos outros
+laboratórios deste repo: iteração rápida, sem custo, sem risco de cobrança real da AWS.
+
+```bash
+cp .env.example .env   # preenche o LOCALSTACK_AUTH_TOKEN (raiz do repo, veja .env.example)
+
+export AWS_ENDPOINT_URL=http://localhost:4566
+export AWS_ACCESS_KEY_ID=test
+export AWS_SECRET_ACCESS_KEY=test
+export AWS_DEFAULT_REGION=us-east-1
+
+docker compose up -d localstack   # sobe o LocalStack (docker-compose.yml na raiz do repo)
+
+aws cloudformation create-stack \
+  --stack-name aws-challenges-avatar-stack \
+  --template-body file://cloudformation/template.yaml \
+  --capabilities CAPABILITY_IAM
+
+aws cloudformation wait stack-create-complete \
+  --stack-name aws-challenges-avatar-stack
+```
+
+Teardown, quando quiser encerrar:
+
+```bash
+aws cloudformation delete-stack --stack-name aws-challenges-avatar-stack
+aws cloudformation wait stack-delete-complete --stack-name aws-challenges-avatar-stack
+```
