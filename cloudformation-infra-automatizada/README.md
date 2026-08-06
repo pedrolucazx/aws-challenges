@@ -4,7 +4,7 @@ Esta pasta é o entregável do desafio DIO "Implementando Infraestrutura Automat
 CloudFormation". Diferente do primeiro desafio de CloudFormation deste repo (pasta
 [`cloudformation/`](../cloudformation/), um stack único de S3+IAM+Lambda), este laboratório foca
 no conceito de **automação de infraestrutura**: um template parametrizado, com Outputs exportados
-para composição entre stacks, e um fluxo real de atualização via change set.
+para composição entre stacks.
 
 **Espelha a topologia real do IMM** ([imm-api](https://github.com/pedrolucazx/imm-api), um SaaS de
 hábitos e diário — ver `docs/aws-modulo-4-redes.md` do repo `inside-my-mind`): 1 VPC com 1 subnet
@@ -151,29 +151,3 @@ aws cloudformation delete-stack --stack-name aws-challenges-infra-automatizada
 aws cloudformation wait stack-delete-complete --stack-name aws-challenges-infra-automatizada
 ```
 
-## Deploy
-
-`CREATE_COMPLETE` em 2026-08-06T16:47:54Z. Stack `aws-challenges-infra-automatizada`
-(`arn:aws:cloudformation:us-east-1:000000000000:stack/aws-challenges-infra-automatizada/12e28672-dd43-4b84-bcce-3ddace810393`),
-19 recursos, zero rollback. Chegar até aqui exigiu isolar dois bugs reais do LocalStack, não só o
-`DbSubnetGroup` — ver as notas de troubleshooting acima (`EC2_VM_MANAGER` e dependência circular
-entre os Security Groups).
-
-6 Outputs:
-
-| Output | Valor |
-|---|---|
-| `VpcId` | `vpc-6631a7184d8c4918d` |
-| `PublicSubnetId` | `subnet-f5bed70cb908ac0a7` |
-| `PrivateSubnetAId` | `subnet-31e3edcff6308b45a` |
-| `PrivateSubnetBId` | `subnet-d9c528a4f3b4b2b42` |
-| `ComputeSecurityGroupId` | `sg-108bec66f65bf25b3` |
-| `DatabaseSecurityGroupId` | `sg-4cbbc0dbf2aedc75b` |
-
-## Change Set
-
-<!-- Preenchido após T011/T012 da v2: diff do change set (SecurityGroupEgress no ComputeSecurityGroup) -->
-
-## Teardown
-
-<!-- Preenchido após T014: data exata e confirmação de que o stack não existe mais -->
