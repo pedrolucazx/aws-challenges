@@ -1,0 +1,209 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Habit reminder Step Functions workflow for the AWS Challenges lab.
+
+Resources:
+  HabitRemindersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: aws-challenges-habit-reminders
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: reminderId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: reminderId
+          KeyType: HASH
+
+  CheckDueHabitsFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: CheckDueHabitsPermissions
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: dynamodb:Scan
+                Resource: !GetAtt HabitRemindersTable.Arn
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource:
+                  - !Sub 'arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/aws-challenges-check-due-habits:*'
+
+  CheckDueHabitsFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: aws-challenges-check-due-habits
+      Runtime: nodejs20.x
+      Handler: index.handler
+      Role: !GetAtt CheckDueHabitsFunctionRole.Arn
+      Timeout: 10
+      Code:
+        ZipFile: |
+          const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
+          const { DynamoDBDocumentClient, ScanCommand } = require("@aws-sdk/lib-dynamodb");
+
+          const TABLE_NAME = "aws-challenges-habit-reminders";
+          const client = DynamoDBDocumentClient.from(new DynamoDBClient({}));
+
+          exports.handler = async () => {
+            const { Items } = await client.send(
+              new ScanCommand({
+                TableName: TABLE_NAME,
+                FilterExpression: "dueToday = :dueToday",
+                ExpressionAttributeValues: { ":dueToday": true },
+              }),
+            );
+
+            return {
+              dueReminders: (Items || []).map(({ reminderId, habitName, fakeUserId }) => ({
+                reminderId,
+                habitName,
+                fakeUserId,
+              })),
+            };
+          };
+
+  NotifyMockFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: NotifyMockPermissions
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource:
+                  - !Sub 'arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/aws-challenges-notify-mock:*'
+
+  NotifyMockFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: aws-challenges-notify-mock
+      Runtime: nodejs20.x
+      Handler: index.handler
+      Role: !GetAtt NotifyMockFunctionRole.Arn
+      Timeout: 10
+      Code:
+        ZipFile: |
+          exports.handler = async (event) => {
+            const dueReminders = Array.isArray((event || {}).dueReminders) ? event.dueReminders : [];
+
+            const log = dueReminders.map(({ fakeUserId, habitName }) => {
+              const message = "would notify " + fakeUserId + " about " + habitName;
+              console.log(message);
+              return message;
+            });
+
+            return { notified: log.length, log };
+          };
+
+  StateMachineRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: states.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: InvokeWorkflowLambdas
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: lambda:InvokeFunction
+                Resource:
+                  - !GetAtt CheckDueHabitsFunction.Arn
+                  - !GetAtt NotifyMockFunction.Arn
+
+  HabitReminderStateMachine:
+    Type: AWS::StepFunctions::StateMachine
+    Properties:
+      StateMachineName: aws-challenges-habit-reminder
+      RoleArn: !GetAtt StateMachineRole.Arn
+      DefinitionString: |
+        {
+          "Comment": "Habit reminder workflow for the AWS Challenges Step Functions lab.",
+          "StartAt": "CheckDueHabits",
+          "States": {
+            "CheckDueHabits": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::lambda:invoke",
+              "Parameters": {
+                "FunctionName": "aws-challenges-check-due-habits",
+                "Payload.$": "$"
+              },
+              "ResultSelector": {
+                "dueReminders.$": "$.Payload.dueReminders"
+              },
+              "ResultPath": "$",
+              "Catch": [
+                {
+                  "ErrorEquals": ["States.ALL"],
+                  "ResultPath": "$.error",
+                  "Next": "HandleFailure"
+                }
+              ],
+              "Next": "NotifyMock"
+            },
+            "NotifyMock": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::lambda:invoke",
+              "Parameters": {
+                "FunctionName": "aws-challenges-notify-mock",
+                "Payload.$": "$"
+              },
+              "ResultSelector": {
+                "notified.$": "$.Payload.notified",
+                "log.$": "$.Payload.log"
+              },
+              "ResultPath": "$",
+              "Next": "Success"
+            },
+            "Success": {
+              "Type": "Succeed"
+            },
+            "HandleFailure": {
+              "Type": "Fail",
+              "Error": "CheckDueHabitsFailed",
+              "Cause": "The check-due-habits Lambda failed while querying DynamoDB."
+            }
+          }
+        }
+
+Outputs:
+  StateMachineArn:
+    Description: ARN of the habit reminder state machine.
+    Value: !Ref HabitReminderStateMachine
+    Export:
+      Name: !Sub '${AWS::StackName}-StateMachineArn'
+
+  TableName:
+    Description: Name of the habit reminders table.
+    Value: !Ref HabitRemindersTable
+    Export:
+      Name: !Sub '${AWS::StackName}-TableName'
