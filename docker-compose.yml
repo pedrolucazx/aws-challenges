@@ -1,18 +1,22 @@
-# Floci local — um container só, compartilhado pelos 2 desafios (mesma
+# LocalStack local — um container só, compartilhado pelos 4 desafios (mesma
 # lógica de uma conta AWS real: um "endpoint", N recursos com nomes
-# diferentes por desafio). Espelha o exemplo oficial (floci.io/docs).
+# diferentes por desafio). Espelha o exemplo oficial (docs.localstack.cloud).
+# Sem LOCALSTACK_AUTH_TOKEN — tier Hobby (grátis) não precisa de token.
 #
 # Nenhum agente roda `docker compose up` — é mutação (sobe container, ocupa
 # porta), fica só documentado aqui pro Pedro rodar manualmente (ver
 # .specify/memory/constitution.md Princípio II).
 services:
-  floci:
-    image: floci/floci:latest
-    container_name: floci
+  localstack:
+    container_name: localstack-main
+    image: localstack/localstack
     ports:
-      - "4566:4566"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - ./data:/app/data
+      - "127.0.0.1:4566:4566" # LocalStack Gateway
+      - "127.0.0.1:4510-4559:4510-4559" # faixa de portas de serviços externos
     environment:
-      FLOCI_STORAGE_MODE: hybrid
+      - LOCALSTACK_AUTH_TOKEN=${LOCALSTACK_AUTH_TOKEN:?defina no .env, veja README/setup}
+      - DEBUG=0
+      - PERSISTENCE=0
+    volumes:
+      - "./volume:/var/lib/localstack"
+      - "/var/run/docker.sock:/var/run/docker.sock"

@@ -22,5 +22,5 @@ Thumbs.db
 /AGENTS.md
 /opencode.json
 
-# Floci local storage — runtime state, not source
-/data/
+# LocalStack local storage — runtime state, not source
+/volume/
