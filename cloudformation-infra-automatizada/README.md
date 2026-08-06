@@ -7,13 +7,16 @@ no conceito de **automação de infraestrutura**: um template parametrizado, com
 para composição entre stacks.
 
 **Espelha a topologia real do IMM** ([imm-api](https://github.com/pedrolucazx/imm-api), um SaaS de
-hábitos e diário — ver `docs/aws-modulo-4-redes.md` do repo `inside-my-mind`): 1 VPC com 1 subnet
-pública (onde a EC2 real fica) e 2 subnets privadas em AZs diferentes (onde o RDS real fica —
-subnet group de banco exige 2+ AZ), com Security Groups cruzados (compute libera SSH só do IP do
-admin e HTTP/HTTPS públicos; banco libera Postgres só a partir do SG de compute, nunca direto da
-internet). CloudFormation nunca foi usado pra provisionar o IMM real (a infra real foi via AWS CLI
-puro; Terraform é o alvo real de IaC do projeto) — a conexão aqui é honesta: **se fôssemos
-templatizar a rede real do IMM, seria assim**.
+hábitos e diário — ver `docs/aws-modulo-4-redes.md` do repo `inside-my-mind`):
+
+- 1 VPC, 1 subnet pública (onde a EC2 real fica) e 2 subnets privadas em AZs diferentes (onde o RDS
+  real fica — subnet group de banco exige 2+ AZ)
+- Security Groups cruzados: compute libera SSH só do IP do admin e HTTP/HTTPS públicos; banco
+  libera Postgres só a partir do SG de compute, nunca direto da internet
+
+CloudFormation nunca foi usado pra provisionar o IMM real (infra real via AWS CLI puro; Terraform é
+o alvo real de IaC do projeto) — a conexão aqui é honesta: **se fôssemos templatizar a rede real do
+IMM, seria assim**.
 
 ## O Que Foi Construído
 
@@ -41,35 +44,10 @@ templatizar a rede real do IMM, seria assim**.
 | Egress compute → banco | `ComputeToDatabaseEgress` | `AWS::EC2::SecurityGroupEgress` | 5432 → `DatabaseSecurityGroup` |
 | Ingress banco ← compute | `DatabaseFromComputeIngress` | `AWS::EC2::SecurityGroupIngress` | 5432 só via `ComputeSecurityGroup` |
 
-**Nota real de troubleshooting (dependência circular entre SGs)**: a primeira versão tinha as
-regras dos dois SGs inline (`SecurityGroupEgress` do compute referenciando `!Ref
-DatabaseSecurityGroup`, `SecurityGroupIngress` do banco referenciando `!Ref
-ComputeSecurityGroup`). Cada grupo dependia do `GroupId` do outro pra ser criado — uma dependência
-circular clássica desse padrão de dois SGs cruzados. Na AWS real isso é resolvido com um mecanismo
-de duas fases (cria os grupos vazios, depois aplica as regras); no LocalStack, `create-stack`
-travava com a CPU do container a 100%, zero eventos, sem erro claro — nada nos logs indicando o
-motivo. Isolado por bisecção (testando subconjuntos do template em stacks separadas até achar o
-recurso problemático) e confirmado removendo a referência cruzada. Corrigido extraindo as duas
-regras como recursos `AWS::EC2::SecurityGroupIngress`/`...Egress` separados — quebra o ciclo, já
-que a criação dos grupos em si não depende mais um do outro, só as regras (que já existem depois).
-
-**Nota real de troubleshooting (`EC2_VM_MANAGER`)**: antes de chegar na dependência circular acima,
-`create-stack` já travava (CPU do container a 100%, zero progresso) mesmo numa VPC sozinha, sem
-nenhum recurso problemático. Causa: o LocalStack Pro usa por padrão o Docker VM Manager pro EC2
-(precisa do socket do Docker, que o `docker-compose.yml` já monta), aparentemente tentando
-inicializar algo pesado mesmo pra criar só uma VPC — sem nenhuma instância EC2 real no template.
-Corrigido setando `EC2_VM_MANAGER=mock` no `docker-compose.yml` (o manager leve, default da
-Community — só CRUD em memória, suficiente já que este template nunca cria instância EC2 de
-verdade). Isolado comparando um smoke test de 1 recurso (S3, sempre rápido) com um de VPC sozinha
-(travava sem o `mock`, passava com).
-
 **Diferente da decisão do IMM real, de propósito**: o IMM real nunca usou NAT Gateway (custa
-~$33/mês só ligado, sem necessidade real — documentado em `docs/aws-modulo-4-redes.md`). Aqui, no
-LocalStack, esse custo não existe, então faz sentido ter o NAT como exercício — a topologia fica
-mais completa (saída controlada, não só isolamento). Verificado antes de implementar (leitura,
-`describe-nat-gateways`, mais o serviço aparecendo documentado em
-[docs.localstack.cloud/aws/services/](https://docs.localstack.cloud/aws/services/)) — sinal mais
-forte do que o `DbSubnetGroup` teve.
+~$33/mês só ligado, sem necessidade real). Aqui, no LocalStack, esse custo não existe, então faz
+sentido ter o NAT como exercício — a topologia fica mais completa, com saída controlada pras
+subnets privadas, não só isolamento.
 
 5 Parameters (`VpcCidr`, `PublicSubnetCidr`, `PrivateSubnetACidr`, `PrivateSubnetBCidr`,
 `AdminSshCidr` — todos com default, nenhum obrigatório) e 6 Outputs exportados, pra permitir que
@@ -79,13 +57,6 @@ outra stack referencie esses recursos via `Fn::ImportValue`.
 laboratório é a topologia de rede (parametrização, camadas, Security Groups cruzados), não operar
 uma aplicação de verdade. As 2 subnets privadas em AZs diferentes já provam o requisito real de
 isolamento pra banco (RDS exige 2+ AZ pro subnet group) sem precisar do recurso RDS em si.
-
-**Nota real de troubleshooting**: a primeira versão deste template incluía um
-`AWS::RDS::DBSubnetGroup` declarando as 2 subnets privadas. Removido durante o desenvolvimento —
-esse recurso específico exige o feature `rds:pro` do LocalStack, ausente na licença Hobby (grátis)
-usada aqui, e travava `create-change-set` com timeout em vez de um erro claro. Achado direto no
-log do container (`docker logs localstack-main`), não documentado nas páginas de preço/docs
-públicas verificadas antes.
 
 ## Arquivos do Repositório
 
