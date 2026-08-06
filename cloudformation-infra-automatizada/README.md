@@ -17,7 +17,7 @@ templatizar a rede real do IMM, seria assim**.
 
 ## O Que Foi Construído
 
-11 recursos, 2 camadas de rede:
+17 recursos, 2 camadas de rede, com saída controlada pras subnets privadas via NAT Gateway:
 
 | Recurso | Logical ID | Tipo | Propósito |
 |---|---|---|---|
@@ -29,9 +29,23 @@ templatizar a rede real do IMM, seria assim**.
 | Attachment do IGW | `VPCGatewayAttachment` | `AWS::EC2::VPCGatewayAttachment` | Liga o IGW à VPC |
 | Route table pública | `PublicRouteTable` | `AWS::EC2::RouteTable` | Associada só à subnet pública |
 | Rota pública | `PublicRoute` | `AWS::EC2::Route` | `0.0.0.0/0` → IGW |
-| Associação de rota | `PublicSubnetRouteTableAssociation` | `AWS::EC2::SubnetRouteTableAssociation` | Liga a subnet pública à route table |
+| Associação de rota pública | `PublicSubnetRouteTableAssociation` | `AWS::EC2::SubnetRouteTableAssociation` | Liga a subnet pública à route table |
+| EIP do NAT | `NatEip` | `AWS::EC2::EIP` | IP fixo pro NAT Gateway |
+| NAT Gateway | `NatGateway` | `AWS::EC2::NatGateway` | Fica na subnet pública, dá saída pras privadas |
+| Route table privada | `PrivateRouteTable` | `AWS::EC2::RouteTable` | Associada às 2 subnets privadas |
+| Rota privada | `PrivateRoute` | `AWS::EC2::Route` | `0.0.0.0/0` → NAT Gateway |
+| Associação de rota privada A | `PrivateSubnetARouteTableAssociation` | `AWS::EC2::SubnetRouteTableAssociation` | Liga a subnet privada A à route table privada |
+| Associação de rota privada B | `PrivateSubnetBRouteTableAssociation` | `AWS::EC2::SubnetRouteTableAssociation` | Liga a subnet privada B à route table privada |
 | SG de compute | `ComputeSecurityGroup` | `AWS::EC2::SecurityGroup` | 22 (admin), 80/443 (público) |
 | SG de banco | `DatabaseSecurityGroup` | `AWS::EC2::SecurityGroup` | 5432 só via `ComputeSecurityGroup` |
+
+**Diferente da decisão do IMM real, de propósito**: o IMM real nunca usou NAT Gateway (custa
+~$33/mês só ligado, sem necessidade real — documentado em `docs/aws-modulo-4-redes.md`). Aqui, no
+LocalStack, esse custo não existe, então faz sentido ter o NAT como exercício — a topologia fica
+mais completa (saída controlada, não só isolamento). Verificado antes de implementar (leitura,
+`describe-nat-gateways`, mais o serviço aparecendo documentado em
+[docs.localstack.cloud/aws/services/](https://docs.localstack.cloud/aws/services/)) — sinal mais
+forte do que o `DbSubnetGroup` teve.
 
 5 Parameters (`VpcCidr`, `PublicSubnetCidr`, `PrivateSubnetACidr`, `PrivateSubnetBCidr`,
 `AdminSshCidr` — todos com default, nenhum obrigatório) e 6 Outputs exportados, pra permitir que
