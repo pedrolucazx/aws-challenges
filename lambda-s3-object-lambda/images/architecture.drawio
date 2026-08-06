@@ -1,80 +1,87 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <mxfile host="drawio" version="26.0.0">
-  <diagram name="Architecture">
-    <mxGraphModel dx="1060" dy="430" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1260" pageHeight="560" math="0" shadow="0">
+  <diagram name="Page-1">
+    <mxGraphModel dx="1400" dy="900" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1300" pageHeight="420" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
-        <mxCell id="title" value="Lambda + S3 — S3 Object Lambda (transformação em GetObject)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=24;fontStyle=1;fontColor=#232F3E;labelBackgroundColor=#ffffff;" vertex="1" parent="1">
-          <mxGeometry x="40" y="20" width="900" height="32" as="geometry" />
+
+        <mxCell id="2" value="S3 + LAMBDA + DYNAMODB — AUDITORIA DE UPLOAD DE AVATAR DO IMM" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#232F3E;strokeColor=none;fontColor=#ffffff;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="900" height="44" as="geometry" />
         </mxCell>
-        <mxCell id="subtitle" value="Um Object Lambda Access Point intercepta GetObject e transforma o conteúdo (uppercase) via TransformFunction antes de devolver ao cliente. O bucket de origem nunca é alterado — GetObject direto no bucket continua retornando o conteúdo original." style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=13;fontColor=#545B64;labelBackgroundColor=#ffffff;" vertex="1" parent="1">
-          <mxGeometry x="40" y="62" width="1180" height="40" as="geometry" />
+
+        <!-- Client (fora de escopo) -->
+        <mxCell id="10" value="Client&#10;(presigned URL, fora de escopo)" style="sketch=0;outlineConnect=0;fontColor=#232F3E;fillColor=#ffffff;strokeColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=10;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.client;opacity=55;" vertex="1" parent="1">
+          <mxGeometry x="60" y="135" width="60" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="client" value="Cliente" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=14;fontColor=#232F3E;align=center;verticalAlign=middle;spacing=8;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="40" y="220" width="160" height="80" as="geometry" />
+
+        <!-- S3 bucket -->
+        <mxCell id="20" value="AvatarsBucket&#10;avatars/&amp;lt;userId&amp;gt;.&amp;lt;ext&amp;gt;" style="sketch=0;outlineConnect=0;fontColor=#232F3E;fillColor=#7AA116;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=11;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.s3;" vertex="1" parent="1">
+          <mxGeometry x="240" y="130" width="70" height="70" as="geometry" />
         </mxCell>
-        <mxCell id="stack" value="Stack CloudFormation: aws-challenges-object-lambda (rodando via Floci, http://localhost:4566)" style="swimlane;startSize=30;html=1;whiteSpace=wrap;rounded=0;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#232F3E;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="260" y="120" width="960" height="280" as="geometry" />
+
+        <!-- Lambda -->
+        <mxCell id="30" value="ProcessAvatarFunction" style="sketch=0;outlineConnect=0;fontColor=#232F3E;fillColor=#ED7100;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=11;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.lambda;" vertex="1" parent="1">
+          <mxGeometry x="460" y="130" width="70" height="70" as="geometry" />
         </mxCell>
-        <mxCell id="olap" value="ObjectLambdaAccessPoint&#xa;AWS::S3ObjectLambda::AccessPoint" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=13;fontColor=#232F3E;align=center;verticalAlign=middle;spacing=8;" vertex="1" parent="stack">
-          <mxGeometry x="40" y="60" width="220" height="90" as="geometry" />
+
+        <!-- IAM Role -->
+        <mxCell id="31" value="ProcessAvatarFunctionRole&#10;(least privilege)" style="sketch=0;outlineConnect=0;fontColor=#232F3E;fillColor=#DD344C;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=10;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.role;" vertex="1" parent="1">
+          <mxGeometry x="465" y="255" width="60" height="34" as="geometry" />
         </mxCell>
-        <mxCell id="transformFn" value="TransformFunction&#xa;AWS::Lambda::Function (uppercase)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=13;fontColor=#232F3E;align=center;verticalAlign=middle;spacing=8;" vertex="1" parent="stack">
-          <mxGeometry x="360" y="60" width="220" height="90" as="geometry" />
+
+        <!-- DynamoDB -->
+        <mxCell id="40" value="AvatarAuditTable&#10;avatarKey, sha256, ..." style="sketch=0;outlineConnect=0;fontColor=#232F3E;fillColor=#C925D1;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=11;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.dynamodb;" vertex="1" parent="1">
+          <mxGeometry x="680" y="130" width="70" height="70" as="geometry" />
         </mxCell>
-        <mxCell id="supportingAP" value="SupportingAccessPoint&#xa;AWS::S3::AccessPoint" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;fontColor=#232F3E;align=center;verticalAlign=middle;spacing=8;" vertex="1" parent="stack">
-          <mxGeometry x="680" y="60" width="220" height="90" as="geometry" />
+
+        <!-- Legend -->
+        <mxCell id="200" value="FERRAMENTAS E SERVIÇOS" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#232F3E;strokeColor=none;fontColor=#ffffff;fontSize=13;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="980" y="130" width="280" height="34" as="geometry" />
         </mxCell>
-        <mxCell id="sourceBucket" value="SourceBucket&#xa;AWS::S3::Bucket" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=13;fontColor=#232F3E;align=center;verticalAlign=middle;spacing=8;" vertex="1" parent="stack">
-          <mxGeometry x="680" y="185" width="220" height="80" as="geometry" />
+        <mxCell id="201" value="Client" style="sketch=0;outlineConnect=0;fontColor=#232F3E;fillColor=#ffffff;strokeColor=#232F3E;dashed=0;verticalLabelPosition=middle;verticalAlign=middle;align=left;spacingLeft=8;html=1;fontSize=11;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.client;" vertex="1" parent="1">
+          <mxGeometry x="980" y="174" width="270" height="26" as="geometry" />
         </mxCell>
-        <mxCell id="role" value="TransformFunctionRole&#xa;AWS::IAM::Role" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=13;fontColor=#232F3E;align=center;verticalAlign=middle;spacing=8;" vertex="1" parent="stack">
-          <mxGeometry x="360" y="185" width="220" height="80" as="geometry" />
+        <mxCell id="202" value="S3" style="sketch=0;outlineConnect=0;fontColor=#232F3E;fillColor=#7AA116;strokeColor=#ffffff;dashed=0;verticalLabelPosition=middle;verticalAlign=middle;align=left;spacingLeft=8;html=1;fontSize=11;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.s3;" vertex="1" parent="1">
+          <mxGeometry x="980" y="208" width="270" height="26" as="geometry" />
         </mxCell>
-        <mxCell id="edge1" value="1. GetObject (via ARN do OLAP)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=blockThin;endFill=1;strokeWidth=2;strokeColor=#545B64;fontSize=11;fontColor=#404040;labelBackgroundColor=#ffffff;exitX=1;exitY=0.25;exitDx=0;exitDy=0;entryX=0;entryY=0.2;entryDx=0;entryDy=0;" edge="1" parent="1" source="client" target="olap">
-          <mxGeometry relative="1" as="geometry">
-            <mxPoint as="offset" x="0" y="-14" />
-          </mxGeometry>
+        <mxCell id="203" value="Lambda" style="sketch=0;outlineConnect=0;fontColor=#232F3E;fillColor=#ED7100;strokeColor=#ffffff;dashed=0;verticalLabelPosition=middle;verticalAlign=middle;align=left;spacingLeft=8;html=1;fontSize=11;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.lambda;" vertex="1" parent="1">
+          <mxGeometry x="980" y="242" width="270" height="26" as="geometry" />
         </mxCell>
-        <mxCell id="edge2" value="2. invoca (getObjectContext)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=blockThin;endFill=1;strokeWidth=2;strokeColor=#545B64;fontSize=11;fontColor=#404040;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="stack" source="olap" target="transformFn">
+        <mxCell id="204" value="IAM Role" style="sketch=0;outlineConnect=0;fontColor=#232F3E;fillColor=#DD344C;strokeColor=#ffffff;dashed=0;verticalLabelPosition=middle;verticalAlign=middle;align=left;spacingLeft=8;html=1;fontSize=11;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.role;" vertex="1" parent="1">
+          <mxGeometry x="980" y="276" width="270" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="205" value="DynamoDB" style="sketch=0;outlineConnect=0;fontColor=#232F3E;fillColor=#C925D1;strokeColor=#ffffff;dashed=0;verticalLabelPosition=middle;verticalAlign=middle;align=left;spacingLeft=8;html=1;fontSize=11;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.dynamodb;" vertex="1" parent="1">
+          <mxGeometry x="980" y="310" width="270" height="26" as="geometry" />
+        </mxCell>
+
+        <!-- Bottom note -->
+        <mxCell id="300" value="Cliente + presigned URL ficam fora de escopo deste laboratório (o Lambda real está em imm-api/lambda/presigned-url). Aqui o foco é o processamento pós-upload, que o IMM em produção ainda não tem." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;fontSize=11;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="340" width="750" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Edges -->
+        <mxCell id="400" value="PUT (upload)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#232F3E;strokeWidth=2;fontSize=10;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="10" target="20">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="edge3" value="3. GetObject (original)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=blockThin;endFill=1;strokeWidth=2;strokeColor=#545B64;fontSize=11;fontColor=#404040;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="stack" source="transformFn" target="supportingAP">
+        <mxCell id="401" value="s3:ObjectCreated&#10;(prefix avatars/)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#232F3E;strokeWidth=2;fontSize=10;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="20" target="30">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="edge4" value="4. lê objeto" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=blockThin;endFill=1;strokeWidth=2;strokeColor=#545B64;fontSize=11;fontColor=#404040;labelBackgroundColor=#ffffff;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="stack" source="supportingAP" target="sourceBucket">
+        <mxCell id="402" value="PutItem" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#232F3E;strokeWidth=2;fontSize=10;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="30" target="40">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="edge5" value="5. WriteGetObjectResponse (uppercase)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;dashed=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=blockThin;endFill=1;strokeWidth=2;strokeColor=#9673a6;fontSize=11;fontColor=#404040;labelBackgroundColor=#ffffff;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="stack" source="transformFn" target="olap">
+        <mxCell id="403" value="GetObject" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#7AA116;strokeWidth=2;fontSize=10;dashed=1;exitX=0.5;exitY=0;entryX=0.5;entryY=0;" edge="1" parent="1" source="30" target="20">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="470" y="150" />
-              <mxPoint x="150" y="150" />
+              <mxPoint x="495" y="100" />
+              <mxPoint x="275" y="100" />
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="edge6" value="execution role" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=blockThin;endFill=1;strokeWidth=2;strokeColor=#b85450;fontSize=11;fontColor=#404040;labelBackgroundColor=#ffffff;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="stack" source="role" target="transformFn">
+        <mxCell id="404" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#DD344C;strokeWidth=1;dashed=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="30" target="31">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="edgeReturn" value="6. conteúdo transformado (MAIÚSCULO)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;dashed=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=blockThin;endFill=1;strokeWidth=2;strokeColor=#9673a6;fontSize=11;fontColor=#404040;labelBackgroundColor=#ffffff;exitX=0;exitY=0.65;exitDx=0;exitDy=0;entryX=1;entryY=0.65;entryDx=0;entryDy=0;" edge="1" parent="1" source="olap" target="client">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="220" y="330" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="edgeDirect" value="GetObject direto no bucket → conteúdo original, sem transformação (prova SC-002)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;dashed=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=blockThin;endFill=1;strokeWidth=2;strokeColor=#82b366;fontSize=11;fontColor=#404040;labelBackgroundColor=#ffffff;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.15;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="client" target="sourceBucket">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="120" y="450" />
-              <mxPoint x="790" y="450" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="footnote" value="Toda automação (validate, deploy, put/get de teste, teardown) roda contra o endpoint local do Floci — nenhum comando aws toca a conta real da AWS neste laboratório." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;fontColor=#232F3E;align=center;verticalAlign=middle;" vertex="1" parent="1">
-          <mxGeometry x="280" y="480" width="700" height="42" as="geometry" />
-        </mxCell>
+
       </root>
     </mxGraphModel>
   </diagram>

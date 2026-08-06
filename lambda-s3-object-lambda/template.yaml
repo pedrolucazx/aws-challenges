@@ -1,29 +1,42 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: S3 Object Lambda uppercase transform lab for the DIO Lambda and S3 challenge.
+Description: >-
+  S3 -> Lambda -> DynamoDB, espelhando o fluxo real de upload de avatar do IMM
+  (avatars/<userId>.<ext>), com uma etapa de auditoria pos-upload que a producao ainda nao tem.
 
 Resources:
-  SourceBucket:
+  AvatarsBucket:
     Type: AWS::S3::Bucket
+    DependsOn: ProcessAvatarInvokePermission
     Properties:
-      BucketName: !Sub 'aws-challenges-ola-source-${AWS::AccountId}'
+      BucketName: !Sub 'aws-challenges-imm-avatars-${AWS::AccountId}'
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
         BlockPublicPolicy: true
         IgnorePublicAcls: true
         RestrictPublicBuckets: true
+      NotificationConfiguration:
+        LambdaConfigurations:
+          - Event: s3:ObjectCreated:*
+            Filter:
+              S3Key:
+                Rules:
+                  - Name: prefix
+                    Value: avatars/
+            Function: !GetAtt ProcessAvatarFunction.Arn
 
-  SupportingAccessPoint:
-    Type: AWS::S3::AccessPoint
+  AvatarAuditTable:
+    Type: AWS::DynamoDB::Table
     Properties:
-      Bucket: !Ref SourceBucket
-      Name: !Sub 'aws-challenges-ola-ap-${AWS::AccountId}'
-      PublicAccessBlockConfiguration:
-        BlockPublicAcls: true
-        BlockPublicPolicy: true
-        IgnorePublicAcls: true
-        RestrictPublicBuckets: true
+      TableName: !Sub 'aws-challenges-imm-avatar-audit-${AWS::AccountId}'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: avatarKey
+          AttributeType: S
+      KeySchema:
+        - AttributeName: avatarKey
+          KeyType: HASH
 
-  TransformFunctionRole:
+  ProcessAvatarFunctionRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -34,69 +47,109 @@ Resources:
               Service: lambda.amazonaws.com
             Action: sts:AssumeRole
       Policies:
-        - PolicyName: TransformFunctionPermissions
+        - PolicyName: ProcessAvatarPermissions
           PolicyDocument:
             Version: '2012-10-17'
             Statement:
               - Effect: Allow
-                Action: s3-object-lambda:WriteGetObjectResponse
-                Resource: !Sub 'arn:${AWS::Partition}:s3-object-lambda:${AWS::Region}:${AWS::AccountId}:accesspoint/aws-challenges-ola-olap-${AWS::AccountId}'
+                Action: s3:GetObject
+                Resource: !Sub 'arn:${AWS::Partition}:s3:::aws-challenges-imm-avatars-${AWS::AccountId}/avatars/*'
+              - Effect: Allow
+                Action: dynamodb:PutItem
+                Resource: !GetAtt AvatarAuditTable.Arn
               - Effect: Allow
                 Action:
                   - logs:CreateLogGroup
                   - logs:CreateLogStream
                   - logs:PutLogEvents
                 Resource:
-                  - !Sub 'arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/aws-challenges-ola-transform-*'
-                  - !Sub 'arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/aws-challenges-ola-transform-*:*'
+                  - !Sub 'arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/aws-challenges-imm-process-avatar-${AWS::AccountId}:*'
 
-  TransformFunction:
+  # Código embutido (ZipFile) para não depender de bucket de deploy/build pipeline —
+  # equivalente ao módulo testável em lambdas/process-avatar/index.mjs, em CommonJS
+  # porque inline ZipFile vira index.js (CommonJS) no runtime da Lambda.
+  ProcessAvatarFunction:
     Type: AWS::Lambda::Function
     Properties:
-      FunctionName: !Sub 'aws-challenges-ola-transform-${AWS::AccountId}'
+      FunctionName: !Sub 'aws-challenges-imm-process-avatar-${AWS::AccountId}'
       Runtime: nodejs20.x
       Handler: index.handler
-      Role: !GetAtt TransformFunctionRole.Arn
+      Role: !GetAtt ProcessAvatarFunctionRole.Arn
       Timeout: 30
+      Environment:
+        Variables:
+          AUDIT_TABLE_NAME: !Ref AvatarAuditTable
       Code:
         ZipFile: |
-          const { S3Client, WriteGetObjectResponseCommand } = require("@aws-sdk/client-s3");
+          const crypto = require("crypto");
+          const { S3Client, GetObjectCommand } = require("@aws-sdk/client-s3");
+          const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
+          const { DynamoDBDocumentClient, PutCommand } = require("@aws-sdk/lib-dynamodb");
 
           const s3 = new S3Client({});
+          const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({}));
+          const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+          const KEY_PATTERN = /^avatars\/([^/]+)\.[a-z0-9]+$/i;
 
           exports.handler = async (event) => {
-            const { inputS3Url, outputRoute, outputToken } = event.getObjectContext;
-            const response = await fetch(inputS3Url);
-            const contentType = response.headers.get("content-type") || "application/octet-stream";
-            const body = Buffer.from(await response.arrayBuffer());
-            const isText = contentType.startsWith("text/");
+            for (const record of event.Records) {
+              const bucket = record.s3.bucket.name;
+              const key = decodeURIComponent(record.s3.object.key.replace(/\+/g, " "));
+              const match = KEY_PATTERN.exec(key);
+              if (!match) continue;
 
-            await s3.send(new WriteGetObjectResponseCommand({
-              RequestRoute: outputRoute,
-              RequestToken: outputToken,
-              Body: isText ? body.toString("utf8").toUpperCase() : body,
-              ContentType: contentType,
-            }));
+              const object = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
+              const contentType = object.ContentType || "application/octet-stream";
+              if (!ALLOWED_TYPES.has(contentType)) continue;
+
+              const chunks = [];
+              for await (const chunk of object.Body) chunks.push(chunk);
+              const body = Buffer.concat(chunks);
+              const sha256 = crypto.createHash("sha256").update(body).digest("hex");
+
+              await ddb.send(new PutCommand({
+                TableName: process.env.AUDIT_TABLE_NAME,
+                Item: {
+                  avatarKey: key,
+                  userId: match[1],
+                  contentType,
+                  sizeBytes: body.length,
+                  sha256,
+                  processedAt: new Date().toISOString(),
+                },
+              }));
+            }
           };
 
-  ObjectLambdaAccessPoint:
-    Type: AWS::S3ObjectLambda::AccessPoint
+  # SourceArn construído a partir do nome fixo do bucket (não !GetAtt AvatarsBucket),
+  # de propósito: AvatarsBucket depende deste recurso (precisa da permission pronta
+  # antes de aceitar a NotificationConfiguration), então esta permission não pode
+  # depender de volta do bucket — isso seria a mesma dependência circular que travou
+  # o create-stack no laboratório de CloudFormation (ver cloudformation-infra-automatizada).
+  ProcessAvatarInvokePermission:
+    Type: AWS::Lambda::Permission
     Properties:
-      Name: !Sub 'aws-challenges-ola-olap-${AWS::AccountId}'
-      ObjectLambdaConfiguration:
-        SupportingAccessPoint: !GetAtt SupportingAccessPoint.Arn
-        TransformationConfigurations:
-          - Actions:
-              - GetObject
-            ContentTransformation:
-              AwsLambda:
-                FunctionArn: !GetAtt TransformFunction.Arn
+      FunctionName: !Ref ProcessAvatarFunction
+      Action: lambda:InvokeFunction
+      Principal: s3.amazonaws.com
+      SourceArn: !Sub 'arn:${AWS::Partition}:s3:::aws-challenges-imm-avatars-${AWS::AccountId}'
+      SourceAccount: !Ref AWS::AccountId
 
 Outputs:
-  SourceBucketName:
-    Description: Name of the source bucket that stores the original objects.
-    Value: !Ref SourceBucket
+  AvatarsBucketName:
+    Description: Name of the bucket that receives avatar uploads.
+    Value: !Ref AvatarsBucket
+    Export:
+      Name: !Sub '${AWS::StackName}-AvatarsBucketName'
 
-  ObjectLambdaAccessPointArn:
-    Description: ARN of the Object Lambda Access Point that returns transformed objects.
-    Value: !GetAtt ObjectLambdaAccessPoint.Arn
+  ProcessAvatarFunctionArn:
+    Description: ARN of the Lambda that processes avatar uploads.
+    Value: !GetAtt ProcessAvatarFunction.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-ProcessAvatarFunctionArn'
+
+  AvatarAuditTableName:
+    Description: Name of the DynamoDB table that stores the processing audit trail.
+    Value: !Ref AvatarAuditTable
+    Export:
+      Name: !Sub '${AWS::StackName}-AvatarAuditTableName'
