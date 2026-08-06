@@ -17,7 +17,7 @@ templatizar a rede real do IMM, seria assim**.
 
 ## O Que Foi Construído
 
-17 recursos, 2 camadas de rede, com saída controlada pras subnets privadas via NAT Gateway:
+19 recursos, 2 camadas de rede, com saída controlada pras subnets privadas via NAT Gateway:
 
 | Recurso | Logical ID | Tipo | Propósito |
 |---|---|---|---|
@@ -37,7 +37,21 @@ templatizar a rede real do IMM, seria assim**.
 | Associação de rota privada A | `PrivateSubnetARouteTableAssociation` | `AWS::EC2::SubnetRouteTableAssociation` | Liga a subnet privada A à route table privada |
 | Associação de rota privada B | `PrivateSubnetBRouteTableAssociation` | `AWS::EC2::SubnetRouteTableAssociation` | Liga a subnet privada B à route table privada |
 | SG de compute | `ComputeSecurityGroup` | `AWS::EC2::SecurityGroup` | 22 (admin), 80/443 (público) |
-| SG de banco | `DatabaseSecurityGroup` | `AWS::EC2::SecurityGroup` | 5432 só via `ComputeSecurityGroup` |
+| SG de banco | `DatabaseSecurityGroup` | `AWS::EC2::SecurityGroup` | Sem regra inline — ver abaixo |
+| Egress compute → banco | `ComputeToDatabaseEgress` | `AWS::EC2::SecurityGroupEgress` | 5432 → `DatabaseSecurityGroup` |
+| Ingress banco ← compute | `DatabaseFromComputeIngress` | `AWS::EC2::SecurityGroupIngress` | 5432 só via `ComputeSecurityGroup` |
+
+**Nota real de troubleshooting (dependência circular entre SGs)**: a primeira versão tinha as
+regras dos dois SGs inline (`SecurityGroupEgress` do compute referenciando `!Ref
+DatabaseSecurityGroup`, `SecurityGroupIngress` do banco referenciando `!Ref
+ComputeSecurityGroup`). Cada grupo dependia do `GroupId` do outro pra ser criado — uma dependência
+circular clássica desse padrão de dois SGs cruzados. Na AWS real isso é resolvido com um mecanismo
+de duas fases (cria os grupos vazios, depois aplica as regras); no LocalStack, `create-stack`
+travava com a CPU do container a 100%, zero eventos, sem erro claro — nada nos logs indicando o
+motivo. Isolado por bisecção (testando subconjuntos do template em stacks separadas até achar o
+recurso problemático) e confirmado removendo a referência cruzada. Corrigido extraindo as duas
+regras como recursos `AWS::EC2::SecurityGroupIngress`/`...Egress` separados — quebra o ciclo, já
+que a criação dos grupos em si não depende mais um do outro, só as regras (que já existem depois).
 
 **Diferente da decisão do IMM real, de propósito**: o IMM real nunca usou NAT Gateway (custa
 ~$33/mês só ligado, sem necessidade real — documentado em `docs/aws-modulo-4-redes.md`). Aqui, no

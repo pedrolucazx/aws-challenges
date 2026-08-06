@@ -169,11 +169,6 @@ Resources:
           FromPort: 443
           ToPort: 443
           CidrIp: 0.0.0.0/0
-      SecurityGroupEgress:
-        - IpProtocol: tcp
-          FromPort: 5432
-          ToPort: 5432
-          DestinationSecurityGroupId: !Ref DatabaseSecurityGroup
       Tags:
         - Key: Name
           Value: aws-challenges-imm-compute-sg
@@ -183,14 +178,30 @@ Resources:
     Properties:
       GroupDescription: Database tier — Postgres reachable only from ComputeSecurityGroup, never a direct CIDR.
       VpcId: !Ref ImmVPC
-      SecurityGroupIngress:
-        - IpProtocol: tcp
-          FromPort: 5432
-          ToPort: 5432
-          SourceSecurityGroupId: !Ref ComputeSecurityGroup
       Tags:
         - Key: Name
           Value: aws-challenges-imm-database-sg
+
+  # Regras cruzadas como recursos separados, não inline — evita a dependência circular
+  # entre ComputeSecurityGroup e DatabaseSecurityGroup (cada um precisaria do GroupId do
+  # outro pra ser criado). Travava create-stack no LocalStack (CPU 100%, sem erro claro).
+  ComputeToDatabaseEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !GetAtt ComputeSecurityGroup.GroupId
+      IpProtocol: tcp
+      FromPort: 5432
+      ToPort: 5432
+      DestinationSecurityGroupId: !GetAtt DatabaseSecurityGroup.GroupId
+
+  DatabaseFromComputeIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !GetAtt DatabaseSecurityGroup.GroupId
+      IpProtocol: tcp
+      FromPort: 5432
+      ToPort: 5432
+      SourceSecurityGroupId: !GetAtt ComputeSecurityGroup.GroupId
 
 Outputs:
   VpcId:
