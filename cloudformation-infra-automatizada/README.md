@@ -120,8 +120,22 @@ terminal.
 
 ## Deploy
 
-<!-- Preenchido de novo após o redeploy sem DbSubnetGroup (ver runbook.md "T011 (redesenho 2)") —
-     o deploy anterior (12 recursos, incluía DbSubnetGroup) precisou ser refeito. -->
+`CREATE_COMPLETE` em 2026-08-06T16:47:54Z. Stack `aws-challenges-infra-automatizada`
+(`arn:aws:cloudformation:us-east-1:000000000000:stack/aws-challenges-infra-automatizada/12e28672-dd43-4b84-bcce-3ddace810393`),
+19 recursos, zero rollback. Chegar até aqui exigiu isolar dois bugs reais do LocalStack, não só o
+`DbSubnetGroup` — ver `runbook.md` T018–T024 pro histórico completo (travamento silencioso por
+`EC2_VM_MANAGER=docker` e por dependência circular entre os Security Groups).
+
+6 Outputs:
+
+| Output | Valor |
+|---|---|
+| `VpcId` | `vpc-6631a7184d8c4918d` |
+| `PublicSubnetId` | `subnet-f5bed70cb908ac0a7` |
+| `PrivateSubnetAId` | `subnet-31e3edcff6308b45a` |
+| `PrivateSubnetBId` | `subnet-d9c528a4f3b4b2b42` |
+| `ComputeSecurityGroupId` | `sg-108bec66f65bf25b3` |
+| `DatabaseSecurityGroupId` | `sg-4cbbc0dbf2aedc75b` |
 
 ## Change Set
 
