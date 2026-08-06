@@ -87,6 +87,14 @@ Depois do deploy real, esse desafio passou a rodar também no [LocalStack](https
 sem risco de cobrança real da AWS. O `template.yaml` reproduz os mesmos 4 recursos via
 CloudFormation.
 
+**Execução de sucesso confirmada** em 2026-08-06T20:19:44Z (`describe-execution`, leitura direta):
+
+| Campo | Valor |
+|---|---|
+| `executionArn` | `arn:aws:states:us-east-1:000000000000:execution:aws-challenges-habit-reminder:3410cce9-754d-4da5-adbd-958c5d63efb9` |
+| `status` | `SUCCEEDED` |
+| Duração | ~1.5s (20:19:44Z → 20:19:45Z) |
+
 ```bash
 cp .env.example .env   # preenche o LOCALSTACK_AUTH_TOKEN (raiz do repo, veja .env.example)
 
