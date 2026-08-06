@@ -78,16 +78,18 @@ públicas verificadas antes.
 
 O tráfego externo entra pelo Internet Gateway, roteado pela `PublicRouteTable` só até a
 `PublicSubnet` (onde compute ficaria, protegido pelo `ComputeSecurityGroup`). As subnets privadas
-não têm rota de saída — sem NAT Gateway, mesma decisão consciente já documentada na infra real do
-IMM (custo de ~$33/mês só ligado, sem necessidade real). O `DatabaseSecurityGroup` só aceita
-tráfego do `ComputeSecurityGroup` via `SourceSecurityGroupId` — nunca um CIDR direto, o banco
-nunca fica exposto.
+saem pra internet via `NatGateway` (na subnet pública) através da `PrivateRouteTable` — diferente
+da infra real do IMM (sem NAT, custo de ~$33/mês só ligado, sem necessidade real), decisão
+deliberada aqui porque no LocalStack esse custo não existe (ver seção abaixo). O
+`DatabaseSecurityGroup` só aceita tráfego do `ComputeSecurityGroup` via `SourceSecurityGroupId` —
+nunca um CIDR direto, o banco nunca fica exposto.
 
 ```text
 Internet -> IGW -> PublicRouteTable -> PublicSubnet (ComputeSecurityGroup: 22/80/443)
-                                            |
-                                            v (5432, só via SG)
-                            PrivateSubnetA / PrivateSubnetB (DatabaseSecurityGroup)
+                                            |                    |
+                                            v (5432, só via SG)  v
+                            PrivateSubnetA / PrivateSubnetB   NatGateway -> PrivateRouteTable
+                              (DatabaseSecurityGroup)            (0.0.0.0/0, saída das privadas)
 ```
 
 ## Sobre rodar em LocalStack (escolha deliberada, não um downgrade)
