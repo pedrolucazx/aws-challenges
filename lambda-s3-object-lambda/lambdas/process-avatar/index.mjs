@@ -66,9 +66,7 @@ export const processAvatarRecord = async (
 };
 
 export const handler = async (event, deps) => {
-  const results = [];
   for (const record of event.Records ?? []) {
-    results.push(await processAvatarRecord(record, deps));
+    await processAvatarRecord(record, deps);
   }
-  return results;
 };

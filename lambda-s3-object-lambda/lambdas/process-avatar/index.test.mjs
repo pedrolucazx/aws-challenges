@@ -2,6 +2,10 @@ import assert from "node:assert/strict";
 
 import { isAllowedContentType, parseAvatarKey, processAvatarRecord } from "./index.mjs";
 
+const unreachable = async () => {
+  throw new Error("should not be called");
+};
+
 assert.deepEqual(parseAvatarKey("avatars/user-123.png"), { userId: "user-123" });
 assert.equal(parseAvatarKey("avatars/user-123/extra.png"), null);
 assert.equal(parseAvatarKey("other/user-123.png"), null);
@@ -30,27 +34,13 @@ assert.equal(putItemCall.sha256.length, 64);
 
 const skippedBadType = await processAvatarRecord(record, {
   fetchObject: async () => ({ body: Buffer.from("x"), contentType: "application/pdf" }),
-  putItem: async () => {
-    throw new Error("should not be called");
-  },
+  putItem: unreachable,
 });
 assert.equal(skippedBadType.skipped, true);
 
 const skippedBadKey = await processAvatarRecord(
-  {
-    s3: {
-      bucket: { name: "b" },
-      object: { key: "other/file.png" },
-    },
-  },
-  {
-    fetchObject: async () => {
-      throw new Error("should not be called");
-    },
-    putItem: async () => {
-      throw new Error("should not be called");
-    },
-  },
+  { s3: { bucket: { name: "b" }, object: { key: "other/file.png" } } },
+  { fetchObject: unreachable, putItem: unreachable },
 );
 assert.equal(skippedBadKey.skipped, true);
 
