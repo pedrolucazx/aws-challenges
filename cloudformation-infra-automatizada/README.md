@@ -90,9 +90,9 @@ Internet -> IGW -> PublicRouteTable -> PublicSubnet (ComputeSecurityGroup: 22/80
 
 Este laboratório roda contra o [LocalStack](https://www.localstack.cloud/) (tier Hobby, gratuito)
 em vez da AWS real, mesma decisão consciente do outro laboratório novo deste repo
-(`lambda-s3-object-lambda/`). Nenhum comando de mutação (`create-stack`, `update-stack`,
-`delete-stack`, `execute-change-set`) foi executado por um agente de IA em nenhum momento. Os
-comandos abaixo foram todos rodados manualmente pelo autor, no próprio terminal.
+(`lambda-s3-object-lambda/`). A vantagem é clara: iteração rápida, sem custo e sem risco de
+cobrança real da AWS, essencial pra um template que passou por vários ciclos de teardown e
+redeploy durante o desenvolvimento.
 
 ## Como Rodar
 
