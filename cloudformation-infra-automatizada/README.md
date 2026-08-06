@@ -53,6 +53,16 @@ recurso problemático) e confirmado removendo a referência cruzada. Corrigido e
 regras como recursos `AWS::EC2::SecurityGroupIngress`/`...Egress` separados — quebra o ciclo, já
 que a criação dos grupos em si não depende mais um do outro, só as regras (que já existem depois).
 
+**Nota real de troubleshooting (`EC2_VM_MANAGER`)**: antes de chegar na dependência circular acima,
+`create-stack` já travava (CPU do container a 100%, zero progresso) mesmo numa VPC sozinha, sem
+nenhum recurso problemático. Causa: o LocalStack Pro usa por padrão o Docker VM Manager pro EC2
+(precisa do socket do Docker, que o `docker-compose.yml` já monta), aparentemente tentando
+inicializar algo pesado mesmo pra criar só uma VPC — sem nenhuma instância EC2 real no template.
+Corrigido setando `EC2_VM_MANAGER=mock` no `docker-compose.yml` (o manager leve, default da
+Community — só CRUD em memória, suficiente já que este template nunca cria instância EC2 de
+verdade). Isolado comparando um smoke test de 1 recurso (S3, sempre rápido) com um de VPC sozinha
+(travava sem o `mock`, passava com).
+
 **Diferente da decisão do IMM real, de propósito**: o IMM real nunca usou NAT Gateway (custa
 ~$33/mês só ligado, sem necessidade real — documentado em `docs/aws-modulo-4-redes.md`). Aqui, no
 LocalStack, esse custo não existe, então faz sentido ter o NAT como exercício — a topologia fica
@@ -82,9 +92,8 @@ públicas verificadas antes.
 | Arquivo | Propósito |
 |---|---|
 | [`template.yaml`](./template.yaml) | Template CloudFormation da stack |
-| [`runbook.md`](./runbook.md) | Comandos de mutação (deploy/change-set/teardown) — só o Pedro roda |
-| [`images/architecture.drawio`](./images/architecture.drawio) | Diagrama de arquitetura editável |
-| [`images/architecture.png`](./images/architecture.png) | Diagrama exportado para revisão |
+| [`images/architecture.drawio`](./images/architecture.drawio) | Versão anterior do diagrama, editável (não gerou o PNG atual) |
+| [`images/architecture.png`](./images/architecture.png) | Diagrama de arquitetura (imagem final usada no README) |
 
 ## Design
 
@@ -114,17 +123,41 @@ em vez da AWS real — mesma decisão consciente do outro laboratório novo dest
 necessidades do desafio Lambda+S3 (ver aquele README). CloudFormation em si funciona igualmente
 bem nas duas ferramentas — confirmado via `validate-template` rodado direto contra ambas durante o
 desenvolvimento. Nenhum comando de mutação (`create-stack`, `update-stack`, `delete-stack`,
-`execute-change-set`) foi executado por um agente de IA em nenhum momento — todos estão
-documentados em [`runbook.md`](./runbook.md) e foram rodados manualmente pelo autor, no próprio
-terminal.
+`execute-change-set`) foi executado por um agente de IA em nenhum momento — os comandos abaixo
+foram todos rodados manualmente pelo autor, no próprio terminal.
+
+## Como Rodar
+
+```bash
+export AWS_ENDPOINT_URL=http://localhost:4566
+export AWS_ACCESS_KEY_ID=test
+export AWS_SECRET_ACCESS_KEY=test
+export AWS_DEFAULT_REGION=us-east-1
+
+docker compose up -d localstack   # sobe o LocalStack (docker-compose.yml na raiz do repo)
+
+aws cloudformation create-stack \
+  --stack-name aws-challenges-infra-automatizada \
+  --template-body file://cloudformation-infra-automatizada/template.yaml
+
+aws cloudformation wait stack-create-complete \
+  --stack-name aws-challenges-infra-automatizada
+```
+
+Teardown, quando quiser encerrar:
+
+```bash
+aws cloudformation delete-stack --stack-name aws-challenges-infra-automatizada
+aws cloudformation wait stack-delete-complete --stack-name aws-challenges-infra-automatizada
+```
 
 ## Deploy
 
 `CREATE_COMPLETE` em 2026-08-06T16:47:54Z. Stack `aws-challenges-infra-automatizada`
 (`arn:aws:cloudformation:us-east-1:000000000000:stack/aws-challenges-infra-automatizada/12e28672-dd43-4b84-bcce-3ddace810393`),
 19 recursos, zero rollback. Chegar até aqui exigiu isolar dois bugs reais do LocalStack, não só o
-`DbSubnetGroup` — ver `runbook.md` T018–T024 pro histórico completo (travamento silencioso por
-`EC2_VM_MANAGER=docker` e por dependência circular entre os Security Groups).
+`DbSubnetGroup` — ver as notas de troubleshooting acima (`EC2_VM_MANAGER` e dependência circular
+entre os Security Groups).
 
 6 Outputs:
 
