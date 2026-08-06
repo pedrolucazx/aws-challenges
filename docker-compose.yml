@@ -9,7 +9,10 @@
 services:
   localstack:
     container_name: localstack-main
-    image: localstack/localstack
+    # Pinned em 2026.07.1 (não :latest) — 2026.07.2 travava create-stack com CPU
+    # a 100% e zero progresso, 3x, com templates diferentes, mesmo após restart.
+    # Suspeita de regressão nessa versão. Volta pra :latest se confirmar que não é isso.
+    image: localstack/localstack:2026.07.1
     ports:
       - "127.0.0.1:4566:4566" # LocalStack Gateway
       - "127.0.0.1:4510-4559:4510-4559" # faixa de portas de serviços externos
