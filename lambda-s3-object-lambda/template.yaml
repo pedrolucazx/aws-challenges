@@ -135,6 +135,113 @@ Resources:
       SourceArn: !Sub 'arn:${AWS::Partition}:s3:::aws-challenges-imm-avatars-${AWS::AccountId}'
       SourceAccount: !Ref AWS::AccountId
 
+  # Extensão: API Gateway pra consultar o registro de auditoria de um avatar
+  # (o passo de API Gateway ensinado na aula, aplicado sobre o AvatarAuditTable
+  # em vez do exemplo genérico de notas fiscais do material).
+  GetAvatarAuditFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: GetAvatarAuditPermissions
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: dynamodb:GetItem
+                Resource: !GetAtt AvatarAuditTable.Arn
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource:
+                  - !Sub 'arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/aws-challenges-imm-get-avatar-audit-${AWS::AccountId}:*'
+
+  GetAvatarAuditFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub 'aws-challenges-imm-get-avatar-audit-${AWS::AccountId}'
+      Runtime: nodejs20.x
+      Handler: index.handler
+      Role: !GetAtt GetAvatarAuditFunctionRole.Arn
+      Timeout: 10
+      Environment:
+        Variables:
+          AUDIT_TABLE_NAME: !Ref AvatarAuditTable
+      Code:
+        ZipFile: |
+          const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
+          const { DynamoDBDocumentClient, GetCommand } = require("@aws-sdk/lib-dynamodb");
+
+          const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({}));
+
+          exports.handler = async (event) => {
+            const avatarKey = event.pathParameters && event.pathParameters.avatarKey;
+            if (!avatarKey) {
+              return { statusCode: 400, headers: { "Content-Type": "application/json" }, body: JSON.stringify({ error: "avatarKey é obrigatório na URL" }) };
+            }
+
+            const result = await ddb.send(new GetCommand({ TableName: process.env.AUDIT_TABLE_NAME, Key: { avatarKey } }));
+            if (!result.Item) {
+              return { statusCode: 404, headers: { "Content-Type": "application/json" }, body: JSON.stringify({ error: "nenhum registro de auditoria para " + avatarKey }) };
+            }
+
+            return { statusCode: 200, headers: { "Content-Type": "application/json" }, body: JSON.stringify(result.Item) };
+          };
+
+  AuditApi:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: !Sub 'aws-challenges-imm-avatar-audit-api-${AWS::AccountId}'
+
+  AuditResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref AuditApi
+      ParentId: !GetAtt AuditApi.RootResourceId
+      PathPart: audit
+
+  AuditKeyResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref AuditApi
+      ParentId: !Ref AuditResource
+      PathPart: '{avatarKey+}'
+
+  AuditGetMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref AuditApi
+      ResourceId: !Ref AuditKeyResource
+      HttpMethod: GET
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub 'arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetAvatarAuditFunction.Arn}/invocations'
+
+  AuditApiDeployment:
+    Type: AWS::ApiGateway::Deployment
+    DependsOn: AuditGetMethod
+    Properties:
+      RestApiId: !Ref AuditApi
+      StageName: dev
+
+  AuditApiInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref GetAvatarAuditFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${AuditApi}/*/GET/audit/*'
+
 Outputs:
   AvatarsBucketName:
     Description: Name of the bucket that receives avatar uploads.
@@ -153,3 +260,9 @@ Outputs:
     Value: !Ref AvatarAuditTable
     Export:
       Name: !Sub '${AWS::StackName}-AvatarAuditTableName'
+
+  AuditApiId:
+    Description: REST API id. On LocalStack, GET the audit record at http://localhost:4566/restapis/<id>/dev/_user_request_/audit/avatars/<userId>.<ext>
+    Value: !Ref AuditApi
+    Export:
+      Name: !Sub '${AWS::StackName}-AuditApiId'
