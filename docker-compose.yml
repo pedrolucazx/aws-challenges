@@ -9,9 +9,9 @@
 services:
   localstack:
     container_name: localstack-main
-    # Pinned em 2026.07.1 (não :latest) — 2026.07.2 travava create-stack com CPU
-    # a 100% e zero progresso, 3x, com templates diferentes, mesmo após restart.
-    # Suspeita de regressão nessa versão. Volta pra :latest se confirmar que não é isso.
+    # Pinned em 2026.07.1 (não :latest/2026.07.2) — trocado ao investigar o
+    # travamento abaixo. Acabou não sendo a causa (travou nas duas versões),
+    # mas manter pinado é mais seguro que :latest de qualquer forma.
     image: localstack/localstack:2026.07.1
     ports:
       - "127.0.0.1:4566:4566" # LocalStack Gateway
@@ -20,6 +20,12 @@ services:
       - LOCALSTACK_AUTH_TOKEN=${LOCALSTACK_AUTH_TOKEN:?defina no .env, veja README/setup}
       - DEBUG=0
       - PERSISTENCE=0
+      # create-stack travava (CPU 100%, zero progresso) em todo template com VPC/EC2,
+      # em 2 versões diferentes — só recurso de rede, nunca instância EC2 de verdade.
+      # Suspeita: Pro usa Docker VM Manager por padrão pro EC2 (precisa do socket
+      # montado acima), tentando inicializar algo pesado (AMIs) mesmo sem instância.
+      # Forçando o manager leve (mock — default da Community, só CRUD em memória).
+      - EC2_VM_MANAGER=mock
     volumes:
       - "./volume:/var/lib/localstack"
       - "/var/run/docker.sock:/var/run/docker.sock"
