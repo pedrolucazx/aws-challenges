@@ -1,4 +1,4 @@
-# Laboratório AWS CloudFormation — Upload de Avatar
+# Laboratório AWS CloudFormation: Upload de Avatar
 
 Esta pasta é o entregável do desafio DIO "Implementando sua Primeira Stack com AWS
 CloudFormation". Ela documenta uma stack pequena para provisionar o caminho de upload de avatar:
@@ -7,7 +7,7 @@ upload.
 
 O padrão vem do [imm-api](https://github.com/pedrolucazx/imm-api), um SaaS de hábitos e diário. O
 IMM torna o laboratório mais concreto: produtos reais precisam aceitar upload de imagens sem expor
-credenciais AWS ao cliente. Este desafio reproduz só esse padrão de upload de avatar — não chama,
+credenciais AWS ao cliente. Este desafio reproduz só esse padrão de upload de avatar. Não chama,
 lê, faz deploy em, ou depende de nenhum bucket, Lambda, role IAM, usuário, avatar ou estado de
 conta real do IMM.
 
