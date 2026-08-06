@@ -34,7 +34,7 @@ const putAuditItem = async (item) => {
 
 // Uma entrada de event.Records[] (S3 PUT notification). Ignora silenciosamente
 // (não lança) chaves fora do padrão avatars/<userId>.<ext> ou content-type
-// inesperado — nunca deve derrubar o processamento de outros records no batch.
+// inesperado. Nunca deve derrubar o processamento de outros records no batch.
 export const processAvatarRecord = async (
   record,
   { fetchObject = getObject, putItem = putAuditItem } = {},

@@ -65,8 +65,8 @@ Resources:
                 Resource:
                   - !Sub 'arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/aws-challenges-imm-process-avatar-${AWS::AccountId}:*'
 
-  # Código embutido (ZipFile) para não depender de bucket de deploy/build pipeline —
-  # equivalente ao módulo testável em lambdas/process-avatar/index.mjs, em CommonJS
+  # Código embutido (ZipFile) para não depender de bucket de deploy/build pipeline.
+  # Equivalente ao módulo testável em lambdas/process-avatar/index.mjs, em CommonJS
   # porque inline ZipFile vira index.js (CommonJS) no runtime da Lambda.
   ProcessAvatarFunction:
     Type: AWS::Lambda::Function
@@ -124,7 +124,7 @@ Resources:
   # SourceArn construído a partir do nome fixo do bucket (não !GetAtt AvatarsBucket),
   # de propósito: AvatarsBucket depende deste recurso (precisa da permission pronta
   # antes de aceitar a NotificationConfiguration), então esta permission não pode
-  # depender de volta do bucket — isso seria a mesma dependência circular que travou
+  # depender de volta do bucket. Seria a mesma dependência circular que travou
   # o create-stack no laboratório de CloudFormation (ver cloudformation-infra-automatizada).
   ProcessAvatarInvokePermission:
     Type: AWS::Lambda::Permission

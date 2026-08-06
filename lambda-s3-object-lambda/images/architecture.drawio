@@ -60,10 +60,10 @@
           <mxGeometry x="30" y="20" width="1240" height="68" as="geometry" />
         </mxCell>
         <mxCell id="10" value="&lt;b&gt;Upload do avatar&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#64748B&quot;&gt;URL pré-assinada&lt;/font&gt;" style="sketch=0;outlineConnect=0;fontColor=#172033;fillColor=#FFFFFF;strokeColor=#64748B;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=10;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.client;" vertex="1" parent="1">
-          <mxGeometry x="60" y="210" width="60" height="60" as="geometry" />
+          <mxGeometry x="60" y="220" width="60" height="60" as="geometry" />
         </mxCell>
         <mxCell id="50" value="&lt;b&gt;Consulta de auditoria&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#64748B&quot;&gt;Requisição GET&lt;/font&gt;" style="sketch=0;outlineConnect=0;fontColor=#172033;fillColor=#FFFFFF;strokeColor=#64748B;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=10;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.client;" vertex="1" parent="1">
-          <mxGeometry x="60" y="435" width="60" height="60" as="geometry" />
+          <mxGeometry x="60" y="445" width="60" height="60" as="geometry" />
         </mxCell>
         <mxCell id="20" value="&lt;b&gt;AvatarsBucket&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#64748B&quot;&gt;avatars/{userId}.{ext}&lt;/font&gt;" style="sketch=0;outlineConnect=0;fontColor=#172033;strokeColor=#FFFFFF;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=11;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;fillColor=#7AA116;resIcon=mxgraph.aws4.s3;" vertex="1" parent="1">
           <mxGeometry x="275" y="215" width="70" height="70" as="geometry" />
@@ -125,7 +125,7 @@
         <mxCell id="1216" value="&lt;b&gt;API Gateway&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontColor=#334155;fontSize=10;" vertex="1" parent="1">
           <mxGeometry x="1154" y="295" width="105" height="28" as="geometry" />
         </mxCell>
-        <mxCell id="1210" value="&lt;b&gt;Fluxo principal&lt;/b&gt;  —  chamada ou evento&lt;br&gt;&lt;b&gt;Fluxo tracejado&lt;/b&gt;  —  leitura ou vínculo de permissão" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;fillColor=#F8FAFC;strokeColor=#E2E8F0;fontColor=#64748B;fontSize=9;align=left;verticalAlign=middle;spacingLeft=12;" vertex="1" parent="1">
+        <mxCell id="1210" value="&lt;b&gt;Fluxo principal:&lt;/b&gt; chamada ou evento&lt;br&gt;&lt;b&gt;Fluxo tracejado:&lt;/b&gt; leitura ou vínculo de permissão" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;fillColor=#F8FAFC;strokeColor=#E2E8F0;fontColor=#64748B;fontSize=9;align=left;verticalAlign=middle;spacingLeft=12;" vertex="1" parent="1">
           <mxGeometry x="950" y="350" width="300" height="48" as="geometry" />
         </mxCell>
         <mxCell id="300" value="&lt;div style=&quot;font-size:12px;color:#172033&quot;&gt;&lt;b&gt;ESCOPO DO LABORATÓRIO&lt;/b&gt;&lt;/div&gt;&lt;div style=&quot;margin-top:8px;color:#475569;line-height:1.45&quot;&gt;• O cliente e a geração da URL pré-assinada ficam fora do escopo.&lt;br&gt;• O foco é processar o avatar após o upload e registrar a auditoria.&lt;br&gt;• A consulta via API expõe os metadados armazenados no DynamoDB.&lt;br&gt;&lt;span style=&quot;color:#94A3B8&quot;&gt;Lambda real de presigned URL: imm-api/lambda/presigned-url.&lt;/span&gt;&lt;/div&gt;" style="rounded=1;arcSize=16;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#D8DEE9;fontColor=#334155;fontSize=10;align=left;verticalAlign=top;spacingLeft=16;spacingRight=16;spacingTop=14;shadow=1;" vertex="1" parent="1">

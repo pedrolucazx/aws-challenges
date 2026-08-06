@@ -42,19 +42,12 @@ por HTTP.
 **Nota de design**: `AvatarsBucket` tem `BucketName` fixo (não gerado) e a `ProcessAvatarInvokePermission`
 referencia esse nome via string, não via `!GetAtt AvatarsBucket`. Isso evita uma dependência
 circular entre o bucket (que precisa da permissão pronta antes de aceitar a notification config) e
-a permissão (que precisaria do bucket pronto para pegar o ARN) — a mesma classe de bug que travou
+a permissão (que precisaria do bucket pronto para pegar o ARN). É a mesma classe de bug que travou
 o `create-stack` no laboratório de CloudFormation (`cloudformation-infra-automatizada/`), corrigida
 aqui de propósito antes de acontecer.
 
 4 Outputs exportados (`AvatarsBucketName`, `ProcessAvatarFunctionArn`, `AvatarAuditTableName`,
 `AuditApiId`).
-
-**Nota real de troubleshooting**: a primeira versão deste desafio tentou implementar S3 Object
-Lambda (transformação no `GetObject` via Object Lambda Access Point), seguindo um link de
-documentação da AWS sugerido pelo próprio DIO. Um teste direto (`create-access-point`,
-`create-access-point-for-object-lambda`) confirmou que o emulador local não suporta essas operações
-de S3 Control. Pivotado para o padrão que as aulas realmente ensinam: evento S3 comum disparando
-uma Lambda.
 
 ## Arquivos do Repositório
 
@@ -77,7 +70,7 @@ presigned URL: jpeg, png, webp), calcula o SHA-256 do conteúdo, e grava um item
 `AvatarAuditTable` com key, usuário, content-type, tamanho, hash e timestamp.
 
 Pra consultar esse registro, `AuditApi` expõe `GET /audit/{avatarKey+}`, integrado via `AWS_PROXY`
-com `GetAvatarAuditFunction` — que só tem permissão de leitura (`dynamodb:GetItem`) na tabela.
+com `GetAvatarAuditFunction`, que só tem permissão de leitura (`dynamodb:GetItem`) na tabela.
 
 ## Sobre rodar em LocalStack
 
