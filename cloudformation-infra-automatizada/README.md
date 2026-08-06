@@ -1,4 +1,4 @@
-# Laboratório AWS CloudFormation — Infraestrutura Automatizada
+# Laboratório AWS CloudFormation: Infraestrutura Automatizada
 
 Esta pasta é o entregável do desafio DIO "Implementando Infraestrutura Automatizada com AWS
 CloudFormation". Diferente do primeiro desafio de CloudFormation deste repo (pasta
@@ -7,15 +7,15 @@ no conceito de **automação de infraestrutura**: um template parametrizado, com
 para composição entre stacks.
 
 **Espelha a topologia real do IMM** ([imm-api](https://github.com/pedrolucazx/imm-api), um SaaS de
-hábitos e diário — ver `docs/aws-modulo-4-redes.md` do repo `inside-my-mind`):
+hábitos e diário, ver `docs/aws-modulo-4-redes.md` do repo `inside-my-mind`):
 
 - 1 VPC, 1 subnet pública (onde a EC2 real fica) e 2 subnets privadas em AZs diferentes (onde o RDS
-  real fica — subnet group de banco exige 2+ AZ)
+  real fica, subnet group de banco exige 2+ AZ)
 - Security Groups cruzados: compute libera SSH só do IP do admin e HTTP/HTTPS públicos; banco
   libera Postgres só a partir do SG de compute, nunca direto da internet
 
 CloudFormation nunca foi usado pra provisionar o IMM real (infra real via AWS CLI puro; Terraform é
-o alvo real de IaC do projeto) — a conexão aqui é honesta: **se fôssemos templatizar a rede real do
+o alvo real de IaC do projeto). A conexão aqui é honesta: **se fôssemos templatizar a rede real do
 IMM, seria assim**.
 
 ## O Que Foi Construído
@@ -27,7 +27,7 @@ IMM, seria assim**.
 | VPC | `ImmVPC` | `AWS::EC2::VPC` | Rede isolada do laboratório |
 | Subnet pública | `PublicSubnet` | `AWS::EC2::Subnet` | AZ `a`, onde compute (EC2) ficaria |
 | Subnet privada A | `PrivateSubnetA` | `AWS::EC2::Subnet` | AZ `a`, onde banco ficaria |
-| Subnet privada B | `PrivateSubnetB` | `AWS::EC2::Subnet` | AZ `b` — AZ diferente da A |
+| Subnet privada B | `PrivateSubnetB` | `AWS::EC2::Subnet` | AZ `b`, diferente da A |
 | Internet Gateway | `InternetGateway` | `AWS::EC2::InternetGateway` | Saída pra internet |
 | Attachment do IGW | `VPCGatewayAttachment` | `AWS::EC2::VPCGatewayAttachment` | Liga o IGW à VPC |
 | Route table pública | `PublicRouteTable` | `AWS::EC2::RouteTable` | Associada só à subnet pública |
@@ -40,20 +40,20 @@ IMM, seria assim**.
 | Associação de rota privada A | `PrivateSubnetARouteTableAssociation` | `AWS::EC2::SubnetRouteTableAssociation` | Liga a subnet privada A à route table privada |
 | Associação de rota privada B | `PrivateSubnetBRouteTableAssociation` | `AWS::EC2::SubnetRouteTableAssociation` | Liga a subnet privada B à route table privada |
 | SG de compute | `ComputeSecurityGroup` | `AWS::EC2::SecurityGroup` | 22 (admin), 80/443 (público) |
-| SG de banco | `DatabaseSecurityGroup` | `AWS::EC2::SecurityGroup` | Sem regra inline — ver abaixo |
+| SG de banco | `DatabaseSecurityGroup` | `AWS::EC2::SecurityGroup` | Sem regra inline, ver abaixo |
 | Egress compute → banco | `ComputeToDatabaseEgress` | `AWS::EC2::SecurityGroupEgress` | 5432 → `DatabaseSecurityGroup` |
 | Ingress banco ← compute | `DatabaseFromComputeIngress` | `AWS::EC2::SecurityGroupIngress` | 5432 só via `ComputeSecurityGroup` |
 
 **Diferente da decisão do IMM real, de propósito**: o IMM real nunca usou NAT Gateway (custa
 ~$33/mês só ligado, sem necessidade real). Aqui, no LocalStack, esse custo não existe, então faz
-sentido ter o NAT como exercício — a topologia fica mais completa, com saída controlada pras
+sentido ter o NAT como exercício: a topologia fica mais completa, com saída controlada pras
 subnets privadas, não só isolamento.
 
 5 Parameters (`VpcCidr`, `PublicSubnetCidr`, `PrivateSubnetACidr`, `PrivateSubnetBCidr`,
-`AdminSshCidr` — todos com default, nenhum obrigatório) e 6 Outputs exportados, pra permitir que
+`AdminSshCidr`, todos com default, nenhum obrigatório) e 6 Outputs exportados, pra permitir que
 outra stack referencie esses recursos via `Fn::ImportValue`.
 
-**Fora de escopo, deliberadamente**: nenhuma instância EC2 nem RDS real é criada — o ponto do
+**Fora de escopo, deliberadamente**: nenhuma instância EC2 nem RDS real é criada. O ponto do
 laboratório é a topologia de rede (parametrização, camadas, Security Groups cruzados), não operar
 uma aplicação de verdade. As 2 subnets privadas em AZs diferentes já provam o requisito real de
 isolamento pra banco (RDS exige 2+ AZ pro subnet group) sem precisar do recurso RDS em si.
@@ -72,11 +72,11 @@ isolamento pra banco (RDS exige 2+ AZ pro subnet group) sem precisar do recurso 
 
 O tráfego externo entra pelo Internet Gateway, roteado pela `PublicRouteTable` só até a
 `PublicSubnet` (onde compute ficaria, protegido pelo `ComputeSecurityGroup`). As subnets privadas
-saem pra internet via `NatGateway` (na subnet pública) através da `PrivateRouteTable` — diferente
-da infra real do IMM (sem NAT, custo de ~$33/mês só ligado, sem necessidade real), decisão
-deliberada aqui porque no LocalStack esse custo não existe (ver seção abaixo). O
-`DatabaseSecurityGroup` só aceita tráfego do `ComputeSecurityGroup` via `SourceSecurityGroupId` —
-nunca um CIDR direto, o banco nunca fica exposto.
+saem pra internet via `NatGateway` (na subnet pública) através da `PrivateRouteTable`, diferente
+da infra real do IMM (sem NAT, custo de ~$33/mês só ligado, sem necessidade real): decisão
+deliberada aqui porque no LocalStack esse custo não existe (ver seção acima). O
+`DatabaseSecurityGroup` só aceita tráfego do `ComputeSecurityGroup` via `SourceSecurityGroupId`,
+nunca um CIDR direto. O banco nunca fica exposto.
 
 ```text
 Internet -> IGW -> PublicRouteTable -> PublicSubnet (ComputeSecurityGroup: 22/80/443)
@@ -89,17 +89,16 @@ Internet -> IGW -> PublicRouteTable -> PublicSubnet (ComputeSecurityGroup: 22/80
 ## Sobre rodar em LocalStack (escolha deliberada, não um downgrade)
 
 Este laboratório roda contra o [LocalStack](https://www.localstack.cloud/) (tier Hobby, gratuito)
-em vez da AWS real — mesma decisão consciente do outro laboratório novo deste repo
-(`lambda-s3-object-lambda/`), trocado do [Floci](https://floci.io/) especificamente por causa das
-necessidades do desafio Lambda+S3 (ver aquele README). CloudFormation em si funciona igualmente
-bem nas duas ferramentas — confirmado via `validate-template` rodado direto contra ambas durante o
-desenvolvimento. Nenhum comando de mutação (`create-stack`, `update-stack`, `delete-stack`,
-`execute-change-set`) foi executado por um agente de IA em nenhum momento — os comandos abaixo
-foram todos rodados manualmente pelo autor, no próprio terminal.
+em vez da AWS real, mesma decisão consciente do outro laboratório novo deste repo
+(`lambda-s3-object-lambda/`). Nenhum comando de mutação (`create-stack`, `update-stack`,
+`delete-stack`, `execute-change-set`) foi executado por um agente de IA em nenhum momento. Os
+comandos abaixo foram todos rodados manualmente pelo autor, no próprio terminal.
 
 ## Como Rodar
 
 ```bash
+cp .env.example .env   # preenche o LOCALSTACK_AUTH_TOKEN (raiz do repo, veja .env.example)
+
 export AWS_ENDPOINT_URL=http://localhost:4566
 export AWS_ACCESS_KEY_ID=test
 export AWS_SECRET_ACCESS_KEY=test

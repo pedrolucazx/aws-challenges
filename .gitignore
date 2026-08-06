@@ -3,6 +3,7 @@ dist/
 build/
 *.log
 .env*
+!.env.example
 *.zip
 .DS_Store
 Thumbs.db
